@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebIoT Custom Dashboard - Telkom University</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a12;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --border-card: rgba(51, 65, 85, 0.6);
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+        }
+
+        body { 
+            margin: 0; 
+            background-color: var(--bg-dark); 
+            color: #f8fafc; 
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Area Canvas Grid Background */
+        #canvas-area {
+            position: relative;
+            background-color: #090d16;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 24px 24px, 24px 24px;
+            overflow: auto;
+            min-height: 100%;
+            width: 100%;
+        }
+
+        /* Widget Card Styling */
+        .widget-card {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            width: 260px;
+            height: 160px;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+        }
+
+        .widget-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Edit Mode Widgets */
+        .edit-mode .widget-card {
+            cursor: grab;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 10px 20px rgba(0, 0, 0, 0.4); 
+        }
+        .edit-mode .widget-card:active {
+            cursor: grabbing;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(59, 130, 246, 0.9);
+            z-index: 50 !important;
+            transform: scale(1.02);
+        }
+        .edit-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: none;
+            border-radius: 16px;
+        }
+        .edit-mode .edit-overlay { display: block; }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            pointer-events: none;
+        }
+        .widget-title { 
+            font-size: 13px; 
+            font-weight: 700; 
+            color: #e2e8f0; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            letter-spacing: 0.2px;
+        }
+        .pin-badge { 
+            background: linear-gradient(135deg, #1e293b, #0f172a); 
+            color: #60a5fa; 
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            font-size: 10px; 
+            padding: 3px 8px; 
+            border-radius: 6px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-weight: 700; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Widget Action Buttons */
+        .widget-actions {
+            position: absolute;
+            top: -12px; right: -12px;
+            display: none;
+            gap: 6px;
+            z-index: 25;
+        }
+        .edit-mode .widget-card:hover .widget-actions { display: flex; }
+        .widget-action-btn {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; cursor: pointer; color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            pointer-events: auto;
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .widget-action-btn:hover {
+            transform: scale(1.15);
+            filter: brightness(1.2);
+        }
+
+        /* UI Elements Widget Controls */
+        .switch { position: relative; display: inline-block; width: 64px; height: 34px; margin: auto; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle { 
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: #334155; transition: .35s cubic-bezier(0.4, 0, 0.2, 1); 
+            border-radius: 34px; 
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .slider-toggle:before { 
+            position: absolute; content: ""; height: 26px; width: 26px; left: 3px; bottom: 3px; 
+            background-color: #f8fafc; transition: .35s cubic-bezier(0.4, 0, 0.2, 1); 
+            border-radius: 50%; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+        input:checked + .slider-toggle { 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            box-shadow: 0 0 15px rgba(16,185,129,0.4); 
+        }
+        input:checked + .slider-toggle:before { transform: translateX(30px); }
+
+        .range-slider { 
+            -webkit-appearance: none; width: 100%; height: 8px; border-radius: 6px; 
+            background: #334155; outline: none; margin: 15px 0; 
+        }
+        .range-slider::-webkit-slider-thumb { 
+            -webkit-appearance: none; appearance: none; width: 22px; height: 22px; 
+            border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2563eb); 
+            cursor: pointer; box-shadow: 0 0 12px rgba(59, 130, 246, 0.6); 
+            border: 2px solid #ffffff;
+        }
+        
+        .value-display { 
+            font-size: 36px; font-weight: 800; color: #38bdf8; text-align: center; margin: auto; 
+            font-family: 'JetBrains Mono', monospace; 
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); 
+            letter-spacing: -1px;
+        }
+
+        .gauge-container { width: 110px; margin: 0 auto; position: relative; }
+        .gauge-text { 
+            position: absolute; top: 62%; left: 50%; transform: translate(-50%, -50%); 
+            font-size: 22px; font-weight: 800; color: #10b981; 
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Terminal / Log Monitor */
+        #log-panel { 
+            background: #060913; 
+            height: 130px; 
+            overflow-y: auto; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 11px; 
+            padding: 12px 16px; 
+            border-top: 1px solid #1e293b; 
+        }
+        .log-entry { margin-bottom: 3px; line-height: 1.5; }
+        .log-time { color: #475569; margin-right: 8px; font-weight: 500; }
+        .log-rx { color: #34d399; font-weight: 700; }
+        .log-tx { color: #60a5fa; font-weight: 700; }
+
+        .pulse { animation: pulse-animation 2s infinite; }
+        @keyframes pulse-animation { 
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } 
+        }
+
+        /* Modals */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(3, 7, 18, 0.85); 
+            backdrop-filter: blur(8px); 
+            z-index: 100; 
+            align-items: center; 
+            justify-content: center; 
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Mobile Prototype Styling */
+        #modal-prototype {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #121318;
+            z-index: 150;
+            flex-direction: column;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .phone-mockup-frame {
+            width: 360px;
+            height: 720px;
+            background: #0f172a;
+            border-radius: 46px;
+            box-shadow: 0 0 0 10px #1e293b, 0 0 0 13px #0f172a, 0 25px 60px rgba(0, 0, 0, 0.9);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script></head>
+<body class="flex flex-col h-screen">
+
+    <!-- Header Navbar -->
+    <header class="bg-[#0f172a]/90 backdrop-blur-md border-b border-[#1e293b] h-16 flex items-center justify-between px-6 shadow-xl z-30 shrink-0">
+        <div class="flex items-center gap-4">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+                    <div class="w-full h-full bg-[#0f172a] rounded-[10px] flex items-center justify-center">
+                        <i class="fas fa-network-wired text-emerald-400 text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-base font-extrabold tracking-wide text-white leading-tight flex items-center gap-2">
+                        WebIoT Builder
+                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">PRO</span>
+                    </h1>
+                    <p class="text-[10px] text-gray-400 font-medium tracking-wide">Telkom University &bull; Custom Dashboard Engine</p>
+                </div>
+            </div>
+
+            <div class="h-6 w-px bg-gray-800 mx-2"></div>
+
+            <!-- Navigation Button Back to Home Selector -->
+            <a href="index.html" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700/50 text-xs font-bold text-gray-200 transition-all hover:scale-105 active:scale-95">
+                <i class="fas fa-arrow-left text-emerald-400"></i>
+                <span>Kembali ke Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <!-- Prototype Mode Button -->
+            <button onclick="openPrototypeModal()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/90 to-indigo-600/90 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 border border-purple-400/30">
+                <i class="fas fa-mobile-screen-button text-xs text-purple-200"></i>
+                <span>Prototype HP</span>
+            </button>
+
+            <!-- Server Config Button -->
+            <button onclick="openServerConfig()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800/40 hover:bg-gray-800 border border-gray-700/40 text-gray-300 hover:text-white text-xs font-semibold transition" title="Status Supabase Realtime">
+                <i class="fas fa-sliders text-emerald-400"></i>
+                <span>Server WS</span>
+            </button>
+
+            <!-- Connection Status -->
+            <div class="flex items-center gap-2.5 bg-[#070a12] px-3.5 py-1.5 rounded-full border border-gray-800">
+                <div id="conn-indicator" class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <span id="conn-status" class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Offline</span>
+            </div>
+            
+            <div class="h-6 w-px bg-gray-800 mx-1"></div>
+
+            <!-- Toggle Edit Mode -->
+            <label class="flex items-center cursor-pointer gap-3 bg-gray-800/40 hover:bg-gray-800/70 px-3.5 py-1.5 rounded-xl border border-gray-700/50 transition">
+                <span class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fas fa-edit text-blue-400 text-xs"></i> Mode Edit
+                </span>
+                <div class="relative">
+                    <input type="checkbox" id="edit-mode-toggle" class="sr-only" onchange="toggleEditMode()">
+                    <div class="block bg-gray-700 w-10 h-6 rounded-full transition-all duration-300" id="edit-toggle-bg"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-all duration-300 shadow-md" id="edit-toggle-dot"></div>
+                </div>
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- Sidebar Widget Palette -->
+        <aside id="widget-palette" class="w-72 bg-[#0c1322]/95 backdrop-blur-md border-r border-[#1e293b] flex flex-col hidden z-20 transition-all shadow-2xl">
+            <div class="p-4 border-b border-[#1e293b] flex items-center justify-between">
+                <h2 class="text-xs font-extrabold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-cubes text-emerald-400"></i> Palet Widget
+                </h2>
+                <span class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-semibold">Drag & Drop</span>
+            </div>
+            <div class="p-4 flex flex-col gap-3 overflow-y-auto flex-1 custom-scrollbar">
+                <button onclick="addWidget('switch')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-power-off text-red-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Toggle Switch</div>
+                        <div class="text-[11px] text-gray-400">Kontrol Sakelar (1 / 0)</div>
+                    </div>
+                </button>
+
+                <button onclick="addWidget('slider')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-sliders-h text-blue-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Slider (PWM)</div>
+                        <div class="text-[11px] text-gray-400">Nilai Analog 0 - 255</div>
+                    </div>
+                </button>
+
+                <button onclick="addWidget('value')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-desktop text-amber-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Value Display</div>
+                        <div class="text-[11px] text-gray-400">Tampilan Angka Telemetri</div>
+                    </div>
+                </button>
+
+                <button onclick="addWidget('gauge')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-tachometer-alt text-cyan-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Gauge Meter</div>
+                        <div class="text-[11px] text-gray-400">Meteran Persentase 0-100%</div>
+                    </div>
+                </button>
+
+                <button onclick="addWidget('text')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-font text-purple-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Status Text</div>
+                        <div class="text-[11px] text-gray-400">Pesan Teks / String</div>
+                    </div>
+                </button>
+            </div>
+            <div class="p-4 border-t border-[#1e293b] bg-[#090e1a]">
+                <button onclick="clearAllWidgets()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 py-2.5 rounded-xl border border-red-800/50 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2">
+                    <i class="fas fa-trash-alt"></i> Bersihkan Canvas
+                </button>
+            </div>
+        </aside>
+
+        <!-- Canvas Area -->
+        <main id="canvas-area" class="flex-1 edit-mode"></main>
+    </div>
+
+    <!-- Terminal Console Log Monitor -->
+    <div class="shrink-0 z-30">
+        <div id="log-panel">
+            <div class="text-emerald-400 mb-2 font-bold flex items-center justify-between border-b border-gray-800 pb-1.5">
+                <span class="flex items-center gap-2"><i class="fas fa-terminal text-xs"></i> Supabase Realtime Log</span>
+                <span class="text-[10px] text-gray-500 font-normal">Real-Time Data Packets</span>
+            </div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <!-- Modal Konfigurasi Widget -->
+    <div id="modal-widget" class="modal-overlay">
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 w-84 shadow-2xl relative">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2 border-b border-gray-800 pb-3">
+                <i class="fas fa-cog text-emerald-400"></i> Pengaturan Widget
+            </h3>
+            <input type="hidden" id="config-id">
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-wider">Judul Widget</label>
+                <input type="text" id="config-title" class="w-full bg-[#070a12] border border-[#334155] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm transition">
+            </div>
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-wider">Virtual Pin (Realtime)</label>
+                <select id="config-pin" class="w-full bg-[#070a12] border border-[#334155] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm transition">
+                    <option value="V0">V0</option> <option value="V1">V1</option> <option value="V2">V2</option>
+                    <option value="V3">V3</option> <option value="V4">V4</option> <option value="V5">V5</option>
+                    <option value="V6">V6</option> <option value="V7">V7</option> <option value="V8">V8</option>
+                    <option value="V9">V9</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeWidgetConfig()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition">Batal</button>
+                <button onclick="saveWidgetConfig()" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfigurasi Server -->
+    <div id="modal-server" class="modal-overlay">
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 w-96 shadow-2xl relative">
+            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2 border-b border-gray-800 pb-3">
+                <i class="fas fa-network-wired text-emerald-400"></i> Pengaturan WebSocket Server
+            </h3>
+            <p class="text-xs text-gray-400 mb-4 leading-relaxed">Masukkan URL / alamat IP dari PC yang menjalankan Node.js Server.</p>
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-wider">Server URL</label>
+                <input type="text" id="config-ws-url" placeholder="Supabase Realtime" class="w-full bg-[#070a12] border border-[#334155] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm transition">
+                <p class="text-[10px] text-gray-500 mt-1.5">Contoh: ws://192.168.1.15:3000 atau Supabase Realtime</p>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeServerConfig()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition">Batal</button>
+                <button onclick="saveServerConfig()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-blue-600/30 transition">Hubungkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Prototype Mobile (Figma Style) -->
+    <div id="modal-prototype">
+        <!-- Top Bar Figma Viewer -->
+        <header class="bg-[#1e1e1e] border-b border-[#2d2d2d] h-14 flex items-center justify-between px-6 shrink-0 text-white z-20">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 text-purple-400 font-bold text-sm bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-lg">
+                    <i class="fab fa-figma"></i> Figma Prototype
+                </div>
+                <span class="text-xs text-gray-400 font-medium">iPhone 15 Pro View &bull; Live Telemetry Sync</span>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="text-xs bg-[#2d2d2d] text-gray-300 px-3 py-1 rounded-md font-mono flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 100% Interactive
+                </div>
+                <button onclick="closePrototypeModal()" class="w-8 h-8 rounded-lg bg-red-600/20 hover:bg-red-600 border border-red-500/40 text-red-300 hover:text-white flex items-center justify-center transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Prototype Viewer Workspace -->
+        <div class="flex-1 flex items-center justify-center overflow-auto p-8 relative bg-radial from-[#1e1e2d] to-[#0d0d14]">
+            <!-- Phone Frame -->
+            <div class="phone-mockup-frame">
+                <!-- Dynamic Island Notch -->
+                <div class="pt-3 pb-1 bg-black flex justify-center items-center shrink-0 z-30">
+                    <div class="w-24 h-5 bg-black border border-gray-800 rounded-full flex items-center justify-between px-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-[#111] border border-gray-700"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-900/40"></div>
+                    </div>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="bg-black text-white px-6 py-1.5 flex justify-between items-center text-[11px] font-semibold tracking-wider shrink-0 z-30">
+                    <span>09:41</span>
+                    <div class="flex items-center gap-1.5 text-xs">
+                        <i class="fas fa-signal text-[10px]"></i>
+                        <i class="fas fa-wifi text-[10px]"></i>
+                        <i class="fas fa-battery-full text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- App Top Bar Inside Phone -->
+                <div class="bg-[#0f172a] border-b border-gray-800/80 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
+                    <div class="flex items-center gap-2.5">
+                        <img src="telu_logo.png" alt="Tel-U Logo" class="w-7 h-7 rounded-full bg-white p-0.5 object-contain shadow">
+                        <div>
+                            <div class="text-xs font-bold text-white leading-tight">Tel-U Smart IoT</div>
+                            <div class="text-[9px] text-emerald-400 font-semibold flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Live Mobile Sync
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xs">
+                        <i class="fas fa-user-gear"></i>
+                    </div>
+                </div>
+
+                <!-- Phone Mobile App Screen Content -->
+                <div id="proto-mobile-content" class="flex-1 bg-[#090d16] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3.5">
+                    <!-- Mobile widgets will render dynamically here -->
+                </div>
+
+                <!-- Bottom Home Indicator Bar -->
+                <div class="bg-black py-2.5 flex justify-center items-center shrink-0 z-30">
+                    <div class="w-32 h-1 bg-gray-600 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === WEBSOCKET CLIENT ===
+        let socket;
+        let connectionTimeout;
+        let reconnectInterval;
+        let wsUrl = localStorage.getItem('webiot_ws_url') || 'Supabase Realtime';
+
+        const connIndicator = document.getElementById('conn-indicator');
+        const connStatus = document.getElementById('conn-status');
+        const logContent = document.getElementById('log-content');
+        
+        function addLog(type, pin, value) {
+            const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            const logEl = document.createElement('div');
+            logEl.className = 'log-entry';
+            if(type === 'SYS') logEl.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="text-amber-400 font-bold">SYS</span>: ${pin} - ${value}`;
+            else if(type === 'RX') logEl.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-rx">RX (Masuk)</span>: Pin <b class="text-white">${pin}</b> = <span class="text-emerald-300">${value}</span>`;
+            else logEl.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-tx">TX (Keluar)</span>: Pin <b class="text-white">${pin}</b> = <span class="text-blue-300">${value}</span>`;
+            logContent.prepend(logEl);
+            if(logContent.children.length > 50) logContent.lastChild.remove();
+        }
+
+        function setConnectionStatus(isOnline) {
+            if (isOnline) {
+                connIndicator.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 pulse';
+                connStatus.innerText = 'Online';
+                connStatus.className = 'text-[11px] font-bold text-emerald-400 uppercase tracking-wider';
+            } else {
+                connIndicator.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+                connStatus.innerText = 'Offline';
+                connStatus.className = 'text-[11px] font-bold text-gray-400 uppercase tracking-wider';
+            }
+        }
+
+        function initWebSocket() {
+            if(socket) socket.close();
+            
+            addLog('SYS', 'Network', `Mencoba terhubung ke ${wsUrl}...`);
+            
+            try {
+                socket = new window.IoTSocket();
+
+                socket.onopen = () => {
+                    addLog('SYS', 'Network', 'Terhubung ke Supabase Realtime');
+                    setConnectionStatus(true);
+                    clearTimeout(reconnectInterval);
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'WRITE') {
+                            handleIncomingData(data.pin, data.value);
+                        } else if (data.type === 'SYNC') {
+                            addLog('SYS', 'Sync', 'Menerima state terakhir dari server');
+                            for (const pin in data.state) {
+                                handleIncomingData(pin, data.state[pin], false); // false = jangan log spam
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Invalid WS Message', e);
+                    }
+                };
+
+                socket.onclose = () => {
+                    setConnectionStatus(false);
+                    addLog('SYS', 'Network', 'Koneksi terputus. Mencoba ulang dalam 3 detik...');
+                    reconnectInterval = setTimeout(initWebSocket, 3000);
+                };
+
+                socket.onerror = (err) => {
+                    setConnectionStatus(false);
+                };
+            } catch (error) {
+                addLog('SYS', 'Error', `URL WebSocket tidak valid: ${error.message}`);
+                setConnectionStatus(false);
+            }
+        }
+
+        function sendToSocket(pin, value) {
+            if (socket && socket.readyState === window.IoTSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'WRITE', pin: pin, value: value }));
+            } else {
+                addLog('SYS', 'Error', 'Gagal mengirim, server belum terhubung.');
+            }
+        }
+
+        // === STATE APLIKASI & WIDGETS ===
+        let isEditMode = true;
+        let widgets = [];
+        const canvasArea = document.getElementById('canvas-area');
+
+        function renderWidgets() {
+            canvasArea.innerHTML = '';
+            widgets.forEach(w => {
+                const el = document.createElement('div');
+                el.className = 'widget-card';
+                el.id = `widget-${w.id}`;
+                el.style.left = `${w.x}px`;
+                el.style.top = `${w.y}px`;
+                
+                let html = `
+                    <div class="edit-overlay"></div>
+                    <div class="widget-actions">
+                        <div class="widget-action-btn bg-blue-600 hover:bg-blue-500" onclick="openWidgetConfig('${w.id}')"><i class="fas fa-pen"></i></div>
+                        <div class="widget-action-btn bg-red-600 hover:bg-red-500" onclick="deleteWidget('${w.id}')"><i class="fas fa-times"></i></div>
+                    </div>
+                    <div class="widget-header">
+                        <div class="widget-title">${getIconForType(w.type)} ${w.title}</div>
+                        <span class="pin-badge">${w.pin}</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center relative w-full">
+                `;
+
+                if (w.type === 'switch') {
+                    const checked = w.value == 1 ? 'checked' : '';
+                    html += `
+                        <label class="switch">
+                            <input type="checkbox" onchange="userAction('${w.id}', this.checked ? 1 : 0)" ${checked} ${isEditMode ? 'disabled' : ''}>
+                            <span class="slider-toggle"></span>
+                        </label>
+                        <div class="text-[10px] text-gray-400 mt-3 uppercase tracking-widest font-extrabold" id="stat-${w.id}">${w.value == 1 ? 'ON' : 'OFF'}</div>
+                    `;
+                } 
+                else if (w.type === 'slider') {
+                    html += `
+                        <input type="range" min="0" max="255" value="${w.value}" class="range-slider" 
+                               oninput="document.getElementById('val-${w.id}').innerText = this.value"
+                               onchange="userAction('${w.id}', this.value)" ${isEditMode ? 'disabled' : ''}>
+                        <div class="text-center font-mono text-xl text-blue-400 font-bold" id="val-${w.id}">${w.value}</div>
+                    `;
+                }
+                else if (w.type === 'value') {
+                    html += `<div class="value-display"><span id="val-${w.id}">${w.value}</span></div>`;
+                }
+                else if (w.type === 'gauge') {
+                    let valNum = Math.max(0, Math.min(100, parseFloat(w.value) || 0));
+                    let offset = 125.6 - (valNum / 100 * 125.6);
+                    let color = valNum > 80 ? '#ef4444' : (valNum > 60 ? '#eab308' : '#10b981');
+                    html += `
+                        <div class="gauge-container">
+                            <svg viewBox="0 0 100 50" class="w-full filter drop-shadow-lg">
+                                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e293b" stroke-width="10" stroke-linecap="round"/>
+                                <path id="path-${w.id}" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="125.6" stroke-dashoffset="${offset}" style="transition: stroke-dashoffset 0.5s ease;"/>
+                            </svg>
+                            <div class="gauge-text" style="color:${color}"><span id="val-${w.id}">${Math.round(valNum)}</span><span class="text-[11px]">%</span></div>
+                        </div>
+                    `;
+                }
+                else if (w.type === 'text') {
+                    html += `<div class="text-center text-sm font-bold text-purple-300 w-full px-2 break-words" id="val-${w.id}">${w.value || '...'}</div>`;
+                }
+
+                html += `</div>`;
+                el.innerHTML = html;
+                canvasArea.appendChild(el);
+            });
+            saveToLocal();
+            renderPrototypeWidgets();
+        }
+
+        function getIconForType(type) {
+            switch(type) {
+                case 'switch': return '<i class="fas fa-power-off text-red-400"></i>';
+                case 'slider': return '<i class="fas fa-sliders-h text-blue-400"></i>';
+                case 'value': return '<i class="fas fa-desktop text-amber-400"></i>';
+                case 'gauge': return '<i class="fas fa-tachometer-alt text-cyan-400"></i>';
+                case 'text': return '<i class="fas fa-font text-purple-400"></i>';
+                default: return '<i class="fas fa-cube"></i>';
+            }
+        }
+
+        // Action dari User -> Dikirim ke WS Node.js
+        window.userAction = function(widgetId, value) {
+            if(isEditMode) return;
+            const w = widgets.find(x => x.id === widgetId);
+            if(w) {
+                w.value = value;
+                sendToSocket(w.pin, value);
+                addLog('TX', w.pin, value);
+                
+                // Sync Desktop UI
+                const statEl = document.getElementById(`stat-${w.id}`);
+                if(statEl) statEl.innerText = value == 1 ? 'ON' : 'OFF';
+                const valEl = document.getElementById(`val-${w.id}`);
+                if(valEl) valEl.innerText = value;
+                
+                const inputEl = document.querySelector(`#widget-${w.id} input[type="checkbox"]`);
+                if(inputEl) inputEl.checked = (value == 1);
+
+                // Sync Prototype UI
+                updatePrototypeWidgetUI(w.id, value);
+            }
+        };
+
+        // Menerima Data dari WS Node.js -> Update UI
+        function handleIncomingData(pin, value, log = true) {
+            if(log) addLog('RX', pin, value);
+            
+            widgets.filter(w => w.pin === pin).forEach(w => {
+                w.value = value;
+                const el = document.getElementById(`widget-${w.id}`);
+                if(el) {
+                    if (w.type === 'switch') {
+                        const input = el.querySelector('input');
+                        if(input) input.checked = (value == 1);
+                        const stat = document.getElementById(`stat-${w.id}`);
+                        if(stat) stat.innerText = value == 1 ? 'ON' : 'OFF';
+                    } 
+                    else if (w.type === 'slider') {
+                        const input = el.querySelector('input');
+                        if(input) input.value = value;
+                        const valDisplay = document.getElementById(`val-${w.id}`);
+                        if(valDisplay) valDisplay.innerText = value;
+                    }
+                    else if (w.type === 'value' || w.type === 'text') {
+                        const valDisplay = document.getElementById(`val-${w.id}`);
+                        if(valDisplay) {
+                            valDisplay.innerText = !isNaN(value) && value.toString().includes('.') ? parseFloat(value).toFixed(1) : value;
+                        }
+                    }
+                    else if (w.type === 'gauge') {
+                        let valNum = Math.max(0, Math.min(100, parseFloat(value) || 0));
+                        let offset = 125.6 - (valNum / 100 * 125.6);
+                        let color = valNum > 80 ? '#ef4444' : (valNum > 60 ? '#eab308' : '#10b981');
+                        
+                        const path = document.getElementById(`path-${w.id}`);
+                        if(path) {
+                            path.style.strokeDashoffset = offset;
+                            path.setAttribute('stroke', color);
+                        }
+                        const valDisplay = document.getElementById(`val-${w.id}`);
+                        if(valDisplay) {
+                            valDisplay.innerText = Math.round(valNum);
+                            valDisplay.parentElement.style.color = color;
+                        }
+                    }
+                }
+
+                // Sync Prototype UI
+                updatePrototypeWidgetUI(w.id, value);
+            });
+        }
+
+        // === DRAG & DROP ===
+        let isDragging = false; let dragWidget = null; let offsetX, offsetY;
+
+        canvasArea.addEventListener('mousedown', (e) => {
+            if(!isEditMode) return;
+            const card = e.target.closest('.widget-card');
+            if(card && !e.target.closest('.widget-action-btn')) {
+                isDragging = true;
+                dragWidget = widgets.find(w => w.id === card.id.replace('widget-', ''));
+                const rect = card.getBoundingClientRect();
+                offsetX = e.clientX - rect.left; offsetY = e.clientY - rect.top;
+                card.style.zIndex = '100';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if(!isDragging || !dragWidget) return;
+            const canvasRect = canvasArea.getBoundingClientRect();
+            let newX = e.clientX - canvasRect.left + canvasArea.scrollLeft - offsetX;
+            let newY = e.clientY - canvasRect.top + canvasArea.scrollTop - offsetY;
+            
+            newX = Math.round(newX / 20) * 20; newY = Math.round(newY / 20) * 20;
+            newX = Math.max(0, newX); newY = Math.max(0, newY);
+
+            dragWidget.x = newX; dragWidget.y = newY;
+            const card = document.getElementById(`widget-${dragWidget.id}`);
+            card.style.left = `${newX}px`; card.style.top = `${newY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if(isDragging && dragWidget) {
+                const card = document.getElementById(`widget-${dragWidget.id}`);
+                if(card) card.style.zIndex = '';
+                saveToLocal();
+            }
+            isDragging = false; dragWidget = null;
+        });
+
+        // === CRUD WIDGET ===
+        window.addWidget = function(type) {
+            const newId = 'w' + Date.now();
+            let defTitle = type.toUpperCase(); let defVal = 0;
+            if(type === 'switch') defTitle = 'Relay Baru';
+            if(type === 'slider') defTitle = 'PWM Baru';
+            if(type === 'value') { defTitle = 'Sensor'; defVal = '--'; }
+            if(type === 'text') { defTitle = 'Status'; defVal = '...'; }
+
+            widgets.push({ id: newId, type: type, pin: 'V0', title: defTitle, x: 20 + canvasArea.scrollLeft, y: 20 + canvasArea.scrollTop, value: defVal });
+            renderWidgets();
+        };
+
+        window.deleteWidget = function(id) {
+            if(confirm('Hapus widget ini?')) {
+                widgets = widgets.filter(w => w.id !== id);
+                renderWidgets();
+            }
+        };
+
+        window.clearAllWidgets = function() {
+            if(confirm('Hapus SEMUA widget di canvas?')) {
+                widgets = [];
+                renderWidgets();
+            }
+        };
+
+        // === MODALS & PROTOTYPE MODE ===
+        const modalWidget = document.getElementById('modal-widget');
+        const modalServer = document.getElementById('modal-server');
+        const modalPrototype = document.getElementById('modal-prototype');
+        const protoMobileContent = document.getElementById('proto-mobile-content');
+
+        window.openWidgetConfig = function(id) {
+            const w = widgets.find(x => x.id === id);
+            if(!w) return;
+            document.getElementById('config-id').value = id;
+            document.getElementById('config-title').value = w.title;
+            document.getElementById('config-pin').value = w.pin;
+            modalWidget.style.display = 'flex';
+        };
+        window.closeWidgetConfig = function() { modalWidget.style.display = 'none'; };
+        window.saveWidgetConfig = function() {
+            const id = document.getElementById('config-id').value;
+            const w = widgets.find(x => x.id === id);
+            if(w) {
+                w.title = document.getElementById('config-title').value;
+                w.pin = document.getElementById('config-pin').value;
+                renderWidgets();
+            }
+            window.closeWidgetConfig();
+        };
+
+        window.openServerConfig = function() { alert('Supabase Realtime: kanal privat akun Anda terhubung otomatis.'); };
+        window.closeServerConfig = function() { modalServer.style.display = 'none'; };
+        window.saveServerConfig = function() {
+            const url = document.getElementById('config-ws-url').value;
+            if(url.startsWith('ws://') || url.startsWith('wss://')) {
+                wsUrl = url;
+                localStorage.setItem('webiot_ws_url', wsUrl);
+                window.closeServerConfig();
+                initWebSocket();
+            } else {
+                alert('Format URL tidak valid! Harus diawali dengan ws:// atau wss://');
+            }
+        };
+
+        // Prototype Modal Handlers
+        window.openPrototypeModal = function() {
+            renderPrototypeWidgets();
+            modalPrototype.style.display = 'flex';
+        };
+        window.closePrototypeModal = function() {
+            modalPrototype.style.display = 'none';
+        };
+
+        function renderPrototypeWidgets() {
+            if(!protoMobileContent) return;
+            protoMobileContent.innerHTML = '';
+
+            if(widgets.length === 0) {
+                protoMobileContent.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-64 text-gray-500 text-center px-4">
+                        <i class="fas fa-cubes text-3xl mb-3 opacity-40"></i>
+                        <p class="text-xs font-semibold">Belum Ada Widget</p>
+                        <p class="text-[10px] opacity-70 mt-1">Tambahkan widget di canvas utama untuk melihat tampilan mobile app.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            widgets.forEach(w => {
+                const card = document.createElement('div');
+                card.className = 'bg-[#141e33] border border-[#23324d] rounded-2xl p-4 shadow-lg flex flex-col gap-3';
+                card.id = `proto-card-${w.id}`;
+
+                let html = `
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs font-bold text-white flex items-center gap-2">
+                            ${getIconForType(w.type)} ${w.title}
+                        </div>
+                        <span class="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-md">${w.pin}</span>
+                    </div>
+                `;
+
+                if (w.type === 'switch') {
+                    const checked = w.value == 1 ? 'checked' : '';
+                    html += `
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-[11px] font-extrabold text-gray-400 tracking-wider" id="proto-stat-${w.id}">${w.value == 1 ? 'STATE: ON' : 'STATE: OFF'}</span>
+                            <label class="switch scale-90">
+                                <input type="checkbox" onchange="userAction('${w.id}', this.checked ? 1 : 0)" ${checked} ${isEditMode ? 'disabled' : ''}>
+                                <span class="slider-toggle"></span>
+                            </label>
+                        </div>
+                    `;
+                }
+                else if (w.type === 'slider') {
+                    html += `
+                        <div class="flex flex-col gap-2 pt-1">
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-gray-400 text-[10px]">PWM Output</span>
+                                <span class="text-blue-400 font-bold" id="proto-val-${w.id}">${w.value}</span>
+                            </div>
+                            <input type="range" min="0" max="255" value="${w.value}" class="range-slider my-1"
+                                   oninput="document.getElementById('proto-val-${w.id}').innerText = this.value"
+                                   onchange="userAction('${w.id}', this.value)" ${isEditMode ? 'disabled' : ''}>
+                        </div>
+                    `;
+                }
+                else if (w.type === 'value') {
+                    html += `
+                        <div class="bg-[#0b1322] rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center my-1">
+                            <span class="text-2xl font-black font-mono text-cyan-400 tracking-tight" id="proto-val-${w.id}">${w.value}</span>
+                            <span class="text-[9px] text-gray-500 uppercase tracking-widest mt-0.5">Telemetry Realtime</span>
+                        </div>
+                    `;
+                }
+                else if (w.type === 'gauge') {
+                    let valNum = Math.max(0, Math.min(100, parseFloat(w.value) || 0));
+                    let color = valNum > 80 ? '#ef4444' : (valNum > 60 ? '#eab308' : '#10b981');
+                    html += `
+                        <div class="flex items-center justify-between px-2 py-1">
+                            <div class="flex flex-col">
+                                <span class="text-xl font-extrabold font-mono" style="color:${color}" id="proto-val-${w.id}">${Math.round(valNum)}%</span>
+                                <span class="text-[9px] text-gray-400">Level Indikator</span>
+                            </div>
+                            <div class="w-24 bg-gray-800 h-3 rounded-full overflow-hidden p-0.5 border border-gray-700">
+                                <div id="proto-bar-${w.id}" class="h-full rounded-full transition-all duration-500" style="width:${valNum}%; background-color:${color}"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                else if (w.type === 'text') {
+                    html += `
+                        <div class="bg-purple-950/30 border border-purple-500/30 rounded-xl p-2.5 text-center text-xs font-bold text-purple-300 break-words" id="proto-val-${w.id}">
+                            ${w.value || '...'}
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = html;
+                protoMobileContent.appendChild(card);
+            });
+        }
+
+        function updatePrototypeWidgetUI(widgetId, value) {
+            const w = widgets.find(x => x.id === widgetId);
+            if(!w) return;
+
+            const statEl = document.getElementById(`proto-stat-${w.id}`);
+            if(statEl && w.type === 'switch') statEl.innerText = value == 1 ? 'STATE: ON' : 'STATE: OFF';
+
+            const inputEl = document.querySelector(`#proto-card-${w.id} input[type="checkbox"]`);
+            if(inputEl && w.type === 'switch') inputEl.checked = (value == 1);
+
+            const valEl = document.getElementById(`proto-val-${w.id}`);
+            if(valEl) {
+                if(w.type === 'gauge') {
+                    let valNum = Math.max(0, Math.min(100, parseFloat(value) || 0));
+                    let color = valNum > 80 ? '#ef4444' : (valNum > 60 ? '#eab308' : '#10b981');
+                    valEl.innerText = Math.round(valNum) + '%';
+                    valEl.style.color = color;
+                    const barEl = document.getElementById(`proto-bar-${w.id}`);
+                    if(barEl) {
+                        barEl.style.width = valNum + '%';
+                        barEl.style.backgroundColor = color;
+                    }
+                } else {
+                    valEl.innerText = !isNaN(value) && value.toString().includes('.') ? parseFloat(value).toFixed(1) : value;
+                }
+            }
+
+            const sliderEl = document.querySelector(`#proto-card-${w.id} input[type="range"]`);
+            if(sliderEl && w.type === 'slider') sliderEl.value = value;
+        }
+
+        // Close modal if clicked outside
+        window.addEventListener('click', (e) => {
+            if(e.target === modalWidget) window.closeWidgetConfig();
+            if(e.target === modalServer) window.closeServerConfig();
+        });
+
+        // === MANAJEMEN MODE EDIT ===
+        const editToggleBtn = document.getElementById('edit-mode-toggle');
+        const editToggleBg = document.getElementById('edit-toggle-bg');
+        const editToggleDot = document.getElementById('edit-toggle-dot');
+        const widgetPalette = document.getElementById('widget-palette');
+
+        window.toggleEditMode = function() {
+            isEditMode = editToggleBtn.checked;
+            if(isEditMode) {
+                editToggleBg.classList.replace('bg-gray-700', 'bg-emerald-500');
+                editToggleDot.classList.add('translate-x-4');
+                canvasArea.classList.add('edit-mode');
+                widgetPalette.classList.remove('hidden');
+            } else {
+                editToggleBg.classList.replace('bg-emerald-500', 'bg-gray-700');
+                editToggleDot.classList.remove('translate-x-4');
+                canvasArea.classList.remove('edit-mode');
+                widgetPalette.classList.add('hidden');
+            }
+            renderWidgets();
+        };
+
+        // === LOCAL STORAGE (Save UI) ===
+        function saveToLocal() {
+            const dataToSave = widgets.map(w => ({ id: w.id, type: w.type, pin: w.pin, title: w.title, x: w.x, y: w.y }));
+            localStorage.setItem('webiot_dashboard_layout_' + window.IoT.user.id, JSON.stringify(dataToSave));
+        }
+
+        function loadFromLocal() {
+            const saved = localStorage.getItem('webiot_dashboard_layout_' + window.IoT.user.id);
+            if(saved) {
+                const parsed = JSON.parse(saved);
+                widgets = parsed.map(w => ({
+                    ...w, 
+                    value: (w.type === 'value' || w.type === 'text') ? '--' : 0
+                }));
+            }
+        }
+
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocal();
+            editToggleBtn.checked = true;
+            window.toggleEditMode();
+            initWebSocket(); // Start WebSocket Connection
+        });
+
+    </script>
+</body>
+</html>

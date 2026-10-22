@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT Web Simulator – Telkom University</title>
+  <meta name="description" content="Platform simulasi IoT berbasis web dari Telkom University. Pilih perangkat ESP32 atau Raspberry Pi untuk mulai simulasi.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:       #e8192c;
+      --red-dark:  #b01020;
+      --red-glow:  rgba(232,25,44,0.45);
+      --bg:        #06080f;
+      --bg2:       #0c0f1a;
+      --surface:   rgba(15,20,40,0.7);
+      --border:    rgba(232,25,44,0.18);
+      --text:      #f0f4ff;
+      --muted:     #8899bb;
+      --accent:    #ff6b35;
+      --blue:      #3b82f6;
+      --blue-glow: rgba(59,130,246,0.35);
+    }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Animated Particle Canvas ─────────────────────── */
+    #particle-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Radial Glow Orbs ─────────────────────────────── */
+    .orb {
+      position: fixed; border-radius: 50%;
+      filter: blur(80px); opacity: 0.25; z-index: 0;
+      animation: orbFloat 12s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 600px; height: 600px; top: -200px; left: -150px; background: radial-gradient(circle, #e8192c, transparent 70%); animation-duration: 14s; }
+    .orb-2 { width: 500px; height: 500px; bottom: -150px; right: -100px; background: radial-gradient(circle, #3b82f6, transparent 70%); animation-duration: 18s; animation-delay: -6s; }
+    .orb-3 { width: 400px; height: 400px; top: 40%; left: 50%; transform: translate(-50%,-50%); background: radial-gradient(circle, #8b5cf6, transparent 70%); animation-duration: 22s; animation-delay: -3s; }
+
+    @keyframes orbFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.1); }
+    }
+
+    /* ── Grid overlay ─────────────────────────────────── */
+    .grid-overlay {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Main Layout ──────────────────────────────────── */
+    .page {
+      position: relative; z-index: 1;
+      width: 100%; height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0; padding: 20px;
+    }
+
+    /* ── Header / Brand ───────────────────────────────── */
+    .brand {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; margin-bottom: 28px;
+      animation: fadeSlideDown 0.8s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .brand-logo-wrap {
+      position: relative;
+      width: 90px; height: 90px;
+    }
+    .brand-logo-ring {
+      position: absolute; inset: -6px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #e8192c, #ff6b35, #e8192c);
+      animation: spinRing 4s linear infinite;
+      opacity: 0.7;
+    }
+    .brand-logo-bg {
+      position: absolute; inset: -2px;
+      border-radius: 50%;
+      background: var(--bg);
+    }
+    .brand-logo {
+      position: relative; z-index: 2;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      object-fit: contain;
+      background: white;
+      padding: 8px;
+    }
+
+    @keyframes spinRing {
+      to { transform: rotate(360deg); }
+    }
+
+    .brand-title {
+      text-align: center;
+    }
+    .brand-title h1 {
+      font-size: clamp(20px, 3vw, 30px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--red) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .brand-title p {
+      font-size: clamp(11px, 1.5vw, 14px);
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Separator ────────────────────────────────────── */
+    .separator {
+      width: 320px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--red), transparent);
+      margin-bottom: 28px;
+      animation: fadeSlideDown 0.9s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+    }
+
+    /* ── Sub-title ────────────────────────────────────── */
+    .sub-label {
+      font-size: clamp(11px, 1.5vw, 13px);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--muted);
+      margin-bottom: 18px;
+      animation: fadeSlideDown 1s cubic-bezier(0.22,1,0.36,1) 0.15s both;
+    }
+
+    /* ── Cards Grid ───────────────────────────────────── */
+    .cards {
+      display: flex; gap: 28px; flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeSlideUp 1s cubic-bezier(0.22,1,0.36,1) 0.2s both;
+    }
+
+    /* ── Single Device Card ───────────────────────────── */
+    .device-card {
+      position: relative;
+      width: 280px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px 24px 28px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      cursor: pointer;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      transition: transform 0.35s cubic-bezier(0.22,1,0.36,1),
+                  box-shadow 0.35s ease,
+                  border-color 0.35s ease;
+      text-decoration: none; color: inherit;
+    }
+
+    /* Shimmer sweep on hover */
+    .device-card::before {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.06), transparent);
+      transition: left 0.55s ease;
+      z-index: 1;
+    }
+    .device-card:hover::before { left: 140%; }
+
+    /* Top gradient accent bar */
+    .device-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 24px 24px 0 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 2;
+    }
+
+    /* ESP card colours – BLUE */
+    .card-esp {
+      --card-glow: rgba(59,130,246,0.35);
+    }
+    .card-esp::after { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+    .card-esp:hover {
+      border-color: rgba(59,130,246,0.55);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.2),
+                  0 20px 60px rgba(59,130,246,0.3),
+                  0 4px 20px rgba(0,0,0,0.5);
+      transform: translateY(-10px) scale(1.02);
+    }
+    .card-esp:hover::after { opacity: 1; }
+
+    /* Raspi card colours – RED */
+    .card-raspi {
+      --card-glow: rgba(232,25,44,0.35);
+    }
+    .card-raspi::after { background: linear-gradient(90deg, #e8192c, #ff6b35); }
+    .card-raspi:hover {
+      border-color: rgba(232,25,44,0.55);
+      box-shadow: 0 0 0 1px rgba(232,25,44,0.2),
+                  0 20px 60px rgba(232,25,44,0.3),
+                  0 4px 20px rgba(0,0,0,0.5);
+      transform: translateY(-10px) scale(1.02);
+    }
+    .card-raspi:hover::after { opacity: 1; }
+
+    /* ── Card Icon ────────────────────────────────────── */
+    .card-icon-wrap {
+      width: 80px; height: 80px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      position: relative;
+      transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+      z-index: 3;
+    }
+    .card-esp .card-icon-wrap {
+      background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(59,130,246,0.08));
+      border: 1px solid rgba(59,130,246,0.3);
+      color: #60a5fa;
+    }
+    .card-raspi .card-icon-wrap {
+      background: linear-gradient(135deg, rgba(232,25,44,0.25), rgba(232,25,44,0.08));
+      border: 1px solid rgba(232,25,44,0.3);
+      color: #ff4d5e;
+    }
+    .device-card:hover .card-icon-wrap {
+      transform: scale(1.12) rotate(-4deg);
+    }
+
+    /* Pulse ring behind icon */
+    .card-icon-wrap::before {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 28px;
+      animation: pulseRing 2.5s ease-in-out infinite;
+      opacity: 0;
+    }
+    .card-esp .card-icon-wrap::before { border: 2px solid rgba(59,130,246,0.4); }
+    .card-raspi .card-icon-wrap::before { border: 2px solid rgba(232,25,44,0.4); }
+    .device-card:hover .card-icon-wrap::before { opacity: 1; }
+
+    @keyframes pulseRing {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.25); opacity: 0; }
+    }
+
+    /* ── Card Text ────────────────────────────────────── */
+    .card-name {
+      font-size: 22px; font-weight: 700;
+      letter-spacing: -0.3px;
+      z-index: 3;
+    }
+    .card-esp .card-name { color: #7db8f7; }
+    .card-raspi .card-name { color: #ff7080; }
+
+    .card-desc {
+      font-size: 13px; color: var(--muted);
+      text-align: center; line-height: 1.6;
+      z-index: 3;
+    }
+
+    /* ── Tags ─────────────────────────────────────────── */
+    .card-tags {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+      z-index: 3;
+    }
+    .tag {
+      font-size: 10px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .card-esp .tag  { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+    .card-raspi .tag { background: rgba(232,25,44,0.15); color: #ff7080; border: 1px solid rgba(232,25,44,0.25); }
+
+    /* ── Button ───────────────────────────────────────── */
+    .card-btn {
+      margin-top: 4px;
+      padding: 11px 28px;
+      border-radius: 12px;
+      font-size: 13px; font-weight: 600;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+      letter-spacing: 0.3px;
+      z-index: 3;
+      font-family: 'Inter', sans-serif;
+    }
+    .card-esp .card-btn {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+    }
+    .card-raspi .card-btn {
+      background: linear-gradient(135deg, #e8192c, #c9182a);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(232,25,44,0.35);
+    }
+    .card-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.15);
+    }
+    .card-btn i { font-size: 12px; transition: transform 0.25s; }
+    .device-card:hover .card-btn i { transform: translateX(4px); }
+
+    /* ── Active click press ───────────────────────────── */
+    .device-card:active { transform: scale(0.98) !important; }
+
+    /* ── Floating IoT icons in background ────────────── */
+    .float-icon {
+      position: fixed; z-index: 0;
+      color: rgba(255,255,255,0.04);
+      font-size: 48px;
+      animation: floatUp linear infinite;
+      pointer-events: none;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      margin-top: 30px;
+      font-size: 11px; color: rgba(136,153,187,0.5);
+      letter-spacing: 1px; text-align: center;
+      animation: fadeSlideUp 1.2s cubic-bezier(0.22,1,0.36,1) 0.35s both;
+    }
+    .footer span { color: #e8192c; }
+
+    /* ── Animations ───────────────────────────────────── */
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Click ripple ─────────────────────────────────── */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: rippleAnim 0.6s linear;
+      background: rgba(255,255,255,0.12);
+      pointer-events: none;
+      z-index: 10;
+    }
+    @keyframes rippleAnim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* ── Status dot ───────────────────────────────────── */
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block; margin-right: 5px;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── Live indicator ───────────────────────────────── */
+    .live-bar {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--muted);
+      margin-bottom: 4px;
+    }
+  </style>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script></head>
+<body>
+
+  <!-- Background layers -->
+  <canvas id="particle-canvas"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Floating background IoT icons -->
+  <div id="float-icons"></div>
+
+  <!-- Main page -->
+  <main class="page">
+
+    <!-- Brand header -->
+    <header class="brand">
+      <div class="brand-logo-wrap">
+        <div class="brand-logo-ring"></div>
+        <div class="brand-logo-bg"></div>
+        <img src="telu_logo.png" alt="Telkom University Logo" class="brand-logo">
+      </div>
+      <div class="brand-title">
+        <h1>IoT Web Simulator</h1>
+        <p>Telkom University &nbsp;&middot;&nbsp; Platform Simulasi IoT Berbasis Web</p>
+      </div>
+    </header>
+
+    <div class="separator"></div>
+
+    <p class="sub-label">Pilih Perangkat Simulasi</p>
+
+    <!-- Device selector cards -->
+    <div class="cards">
+
+      <!-- ESP32 Card -->
+      <a href="esp.html" class="device-card card-esp" id="card-esp">
+        <div class="card-icon-wrap">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div class="card-name">ESP32</div>
+        <p class="card-desc">
+          Simulasi mikrokontroler ESP32 dengan sensor virtual, GPIO, WiFi, dan komponen elektronik yang dapat disambungkan secara drag-and-drop.
+        </p>
+        <div class="card-tags">
+          <span class="tag">Wi-Fi</span>
+          <span class="tag">GPIO</span>
+          <span class="tag">Sensor</span>
+          <span class="tag">WebSocket</span>
+        </div>
+        <button class="card-btn">
+          Mulai Simulasi <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </a>
+
+      <!-- Raspberry Pi Card -->
+      <a href="raspi.html" class="device-card card-raspi" id="card-raspi">
+        <div class="card-icon-wrap">
+          <i class="fa-brands fa-raspberry-pi"></i>
+        </div>
+        <div class="card-name">Raspberry Pi</div>
+        <p class="card-desc">
+          Simulasi single-board computer Raspberry Pi lengkap dengan terminal Linux, GPIO, sensor, dan komunikasi jaringan real-time.
+        </p>
+        <div class="card-tags">
+          <span class="tag">Linux</span>
+          <span class="tag">GPIO</span>
+          <span class="tag">Python</span>
+          <span class="tag">SSH</span>
+        </div>
+        <button class="card-btn">
+          Mulai Simulasi <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </a>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="live-bar" style="justify-content:center;">
+        <span class="status-dot"></span> Sistem Online &nbsp;|&nbsp; Simulasi IoT Real-Time
+      </div>
+      &copy; 2025 Telkom University &nbsp;&middot;&nbsp; <span>IoT Lab</span> &nbsp;&middot;&nbsp; All rights reserved
+    </footer>
+
+  </main>
+
+  <script>
+    /* ── Ripple on click ──────────────────────────────── */
+    document.querySelectorAll('.device-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        const ripple = document.createElement('div');
+        ripple.classList.add('ripple');
+        const rect = card.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 2;
+        ripple.style.cssText = `
+          width: ${size}px; height: ${size}px;
+          left: ${e.clientX - rect.left - size/2}px;
+          top:  ${e.clientY - rect.top  - size/2}px;
+        `;
+        card.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 700);
+      });
+    });
+
+    /* ── Floating IoT Icons ───────────────────────────── */
+    const iotIcons = ['fa-wifi','fa-broadcast-tower','fa-network-wired',
+                      'fa-microchip','fa-satellite-dish','fa-server',
+                      'fa-plug','fa-bolt','fa-memory'];
+    const container = document.getElementById('float-icons');
+    for (let i = 0; i < 14; i++) {
+      const el = document.createElement('i');
+      const icon = iotIcons[Math.floor(Math.random() * iotIcons.length)];
+      el.className = `fa-solid ${icon} float-icon`;
+      const left  = Math.random() * 100;
+      const delay = Math.random() * 18;
+      const dur   = 18 + Math.random() * 16;
+      el.style.cssText = `left:${left}vw; animation-duration:${dur}s; animation-delay:-${delay}s;`;
+      container.appendChild(el);
+    }
+
+    /* ── Particle Canvas ──────────────────────────────── */
+    const canvas = document.getElementById('particle-canvas');
+    const ctx    = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const COLORS = ['rgba(232,25,44,', 'rgba(59,130,246,', 'rgba(139,92,246,'];
+
+    class Particle {
+      constructor() { this.reset(true); }
+      reset(init) {
+        this.x  = Math.random() * W;
+        this.y  = init ? Math.random() * H : H + 10;
+        this.r  = 0.8 + Math.random() * 1.6;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = -(0.3 + Math.random() * 0.6);
+        this.alpha = 0.3 + Math.random() * 0.5;
+        this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        if (this.y < -10) this.reset(false);
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + this.alpha + ')';
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = 'rgba(255,255,255,' + (0.04 * (1 - dist/110)) + ')';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    /* ── Mouse parallax on cards ──────────────────────── */
+    let isHovering = [false, false];
+    const cards = document.querySelectorAll('.device-card');
+
+    document.addEventListener('mousemove', (e) => {
+      const cx = window.innerWidth  / 2;
+      const cy = window.innerHeight / 2;
+      const dx = (e.clientX - cx) / cx;
+      const dy = (e.clientY - cy) / cy;
+      cards.forEach((card, i) => {
+        if (!isHovering[i]) {
+          const f = (i === 0) ? 1 : -1;
+          card.style.transform = `perspective(800px) rotateY(${dx * 3 * f}deg) rotateX(${-dy * 2}deg)`;
+        }
+      });
+    });
+
+    cards.forEach((card, i) => {
+      card.addEventListener('mouseenter', () => {
+        isHovering[i] = true;
+        card.style.transform = 'translateY(-10px) scale(1.02)';
+      });
+      card.addEventListener('mouseleave', () => {
+        isHovering[i] = false;
+        card.style.transform = '';
+      });
+    });
+  </script>
+</body>
+</html>
