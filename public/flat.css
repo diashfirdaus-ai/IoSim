@@ -12,3 +12,27 @@
 .esp32-board .pin,.raspi-board .pin{background:#e3bc65!important;border:2px solid #916d2b!important;border-radius:3px!important;box-shadow:none;transition:background .08s}.pin:hover{outline:3px solid #38bdf8;outline-offset:2px}.raspi-board{background:#18765b!important;border:2px solid #50a88a!important;box-shadow:none!important;border-radius:8px!important}.raspi-chip{background:#243340!important;border:2px solid #7c95a2!important;box-shadow:none!important}.raspi-details:after{content:'USB 3.0  ▣ ▣\A ETHERNET ▣';white-space:pre;display:block;color:#d1fae5;font:10px/2 monospace;border-top:2px solid #65ab95;padding-top:12px;margin-top:18px}.raspi-logo-text{color:#ecfdf5!important}.pin-label,.esp32-pin-label{font-weight:600}.led-visual,.rgb-visual{transition:background-color 60ms,box-shadow 60ms}#workspace{background-color:#0d1825!important;background-image:radial-gradient(#304459 1px,transparent 1px)!important;background-size:20px 20px!important}
 @media(max-width:700px){.auth-card{padding:28px}.auth-card h1{font-size:32px}.cloud-account span{max-width:150px;overflow:hidden;text-overflow:ellipsis}}
 .pin[data-level="high"]{background:#34d399!important;border-color:#a7f3d0!important;outline:2px solid #34d399}.pin[data-level="low"]{background:#334155!important;border-color:#94a3b8!important}
+
+/* Tampilan papan realistis. Hanya lapisan gambar dan posisi pin visual. */
+.component[data-type="esp32"]{width:260px;min-width:260px;background:transparent!important;border:0!important}
+.component[data-type="esp32"] .component-header{background:#172d38!important;border:1px solid #395967!important;padding:10px 14px!important;font-size:12px}
+.component[data-type="esp32"] .esp32-board{box-sizing:border-box;position:relative;width:260px;min-width:260px!important;height:480px;padding:94px 10px 0!important;background:transparent url("/esp32-real.svg") center/100% 100% no-repeat!important;border:0!important;display:flex;justify-content:space-between;align-items:flex-start;gap:0;box-shadow:none!important}
+.component[data-type="esp32"] .esp32-board:after{display:none}
+.component[data-type="esp32"] .esp32-board>.pin-group{position:relative;gap:7px!important}
+.component[data-type="esp32"] .esp32-pin-row{height:16px;margin:0;gap:6px}
+.component[data-type="esp32"] .esp32-pin-label{font:600 8px/16px monospace;width:27px;color:#e1e5dd}
+.component[data-type="esp32"] .esp32-board .pin{box-sizing:border-box;width:12px;height:12px;flex-shrink:0;background:#151d20!important;border:3px solid #bc9e5f!important;border-radius:50%!important}
+.component[data-type="esp32"] .pin[data-level="high"]{background:#6ee7b7!important;outline:2px solid #34d399}
+.component[data-type="esp32"] .pin[data-level="low"]{background:#14272c!important;outline:0}
+.component[data-type="raspi"]{width:500px;background:transparent!important;border:0!important}
+.component[data-type="raspi"] .component-header{background:#173c2b!important;border:1px solid #45785c!important;padding:10px 14px!important;font-size:12px}
+.component[data-type="raspi"] .raspi-board{box-sizing:border-box;position:relative;width:500px;height:330px;min-width:500px;display:block;padding:0!important;border:0!important;background:transparent url("/raspi-real.svg") center/100% 100% no-repeat!important;box-shadow:none!important}
+.component[data-type="raspi"] .raspi-details{display:none}
+.component[data-type="raspi"] .raspi-header-block{box-sizing:border-box;position:absolute;left:45px;top:20px;display:flex;flex-direction:row;width:300px;height:28px;gap:5px;padding:0;background:transparent;border:0;box-shadow:none;z-index:3}
+.component[data-type="raspi"] .raspi-pin-row{position:relative;display:flex;flex-direction:column-reverse;gap:5px;width:10px;flex-shrink:0}
+.component[data-type="raspi"] .raspi-pin-label{display:none}
+.component[data-type="raspi"] .raspi-header-block .pin{box-sizing:border-box;display:block;flex-shrink:0;width:10px;height:10px;margin:0;background:#d7ba66!important;border:2px solid #817037!important;border-radius:1px!important;box-shadow:0 1px 2px #000;cursor:crosshair}
+.component[data-type="raspi"] .raspi-pin-row:hover .raspi-pin-label{display:block;position:absolute;left:-13px;background:#14202e;border:1px solid #648276;border-radius:3px;color:#fff;white-space:nowrap;width:36px;text-align:center;z-index:5;padding:2px;font:10px monospace;pointer-events:none}
+.component[data-type="raspi"] .raspi-pin-row:hover .raspi-pin-label.left{top:32px}
+.component[data-type="raspi"] .raspi-pin-row:hover .raspi-pin-label.right{bottom:32px}
+.component[data-type="raspi"] .pin[data-level="high"]{background:#6ee7b7!important;outline:2px solid #34d399}
