@@ -30,6 +30,8 @@
 
       function setMode(newMode) {
         mode = newMode;
+        tabLogin?.setAttribute('aria-selected', String(mode === 'login'));
+        tabRegister?.setAttribute('aria-selected', String(mode === 'register'));
         if (mode === 'login') {
           tabLogin?.classList.add('active'); tabRegister?.classList.remove('active');
           if (authTitle) authTitle.innerHTML = 'Satu akun.<br>Seluruh eksperimen.';

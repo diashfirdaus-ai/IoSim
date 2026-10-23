@@ -53,3 +53,6 @@ Menu `/jetson.html` menyediakan papan Jetson Nano virtual, drag-and-drop kompone
 Dukungan Python terbatas pada sintaks yang diterjemahkan oleh simulator (GPIO dasar, print, time.sleep, kondisi dan loop sederhana). Fungsi dashboard dapat didefinisikan sebagai `def ITENAS_WRITE_V0(value):`, sedangkan `ITENAS.virtualWrite("V1", nilai)` mengirim data. Simulator tidak menjalankan Python native, CUDA, JetPack, kamera atau inferensi AI.
 
 Materi pengenalan, eksplorasi bagian papan, dan demo skor deteksi buatan tetap tersedia di `/jetson-learn.html`. Sumber: [NVIDIA Jetson GPIO](https://github.com/NVIDIA/jetson-gpio).
+
+## Mode tampilan
+Gunakan tombol Terang/Gelap di kanan bawah pada halaman login, beranda, dashboard, simulator, dan pengenalan Jetson. Pilihan disimpan di browser dan disinkronkan ke tab lain pada origin yang sama. Saat belum memilih, aplikasi mengikuti tema sistem. Tab Masuk/Daftar aktif berwarna jingga, tab tidak aktif putih.

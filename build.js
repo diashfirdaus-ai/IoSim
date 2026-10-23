@@ -3,12 +3,14 @@ const fs = require('fs');
 const loginShell = `<!doctype html>
 <html lang="id">
 <head>
+  <script src="/theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Masuk / Daftar • ITENAS IoT Lab</title>
   <link rel="stylesheet" href="/flat.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.js"></script>
   <script defer src="/auth.js"></script>
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body class="auth-page">
   <main class="auth-card">
@@ -17,9 +19,9 @@ const loginShell = `<!doctype html>
     <h1 id="auth-title">Satu akun.<br>Seluruh eksperimen.</h1>
     <p id="auth-desc">Rancang rangkaian, jalankan simulasi, dan pantau perangkat dalam satu ruang belajar.</p>
     
-    <div class="auth-tabs">
-      <button type="button" id="tab-login" class="auth-tab active">Masuk</button>
-      <button type="button" id="tab-register" class="auth-tab">Daftar Akun</button>
+    <div class="auth-tabs" role="tablist" aria-label="Masuk atau daftar">
+      <button type="button" id="tab-login" class="auth-tab active" role="tab" aria-selected="true">Masuk</button>
+      <button type="button" id="tab-register" class="auth-tab" role="tab" aria-selected="false">Daftar Akun</button>
     </div>
 
     <form id="auth-form">
@@ -42,6 +44,7 @@ const loginShell = `<!doctype html>
 const appShell = `<!doctype html>
 <html lang="id">
 <head>
+  <script src="/theme.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ITENAS IoT Lab</title>
@@ -60,6 +63,7 @@ const appShell = `<!doctype html>
       animation: spin 0.8s linear infinite;
     }
   </style>
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body class="auth-page">
   <div class="loader-box">
