@@ -23,13 +23,12 @@ Versi ini menyertakan dashboard, simulator ESP32/Arduino dan Raspberry Pi, tampi
 2. Import repository ke Vercel. Framework Preset: *Other*, Root Directory: folder proyek ini, Build Command: `npm run build`, Output Directory: `public`.
 3. Tambahkan environment variables `SUPABASE_URL` dan `SUPABASE_ANON_KEY`, lalu deploy.
 4. Supabase **Authentication > URL Configuration**: isi *Site URL* dengan domain Vercel produksi Anda.
-5. Akses web aplikasi: pengguna dapat memilih tab **Masuk** atau **Daftar Akun**.
+5. Akses web aplikasi: halaman masuk/daftar mandiri berada di `/login.html`. Jika pengguna belum masuk dan membuka `/`, sistem otomatis mengarahkan ke `/login.html`.
 
 ## Jalankan Lokal
 1. Jalankan `npm install`.
-2. Salin `.env.example` ke `.env.local` dan isi nilainya.
-3. Jalankan `npm run build` untuk menghasilkan template shell halaman statis.
-4. Jalankan `npx vercel dev`.
+2. Salin `.env.example` ke `.env.local` dan isi kredensial Supabase Anda.
+3. Jalankan `npm run dev`. Server lokal otomatis berjalan di `http://localhost:3000`.
 
 ## Data Tersimpan di Database
 - **Workspace Proyek (ESP32 / Raspi / Dashboard)**: Rangkaian komponen, kabel, kode editor, dan posisi widget dashboard tersimpan otomatis di database cloud (`public.iot_workspaces`) dan disinkronkan lintas browser/perangkat pengguna.
