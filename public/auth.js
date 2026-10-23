@@ -60,7 +60,15 @@
     } else {
      status.textContent = 'Memverifikasi akun…';
      const {data,error} = await client.auth.signInWithPassword({email, password});
-     if(error) throw Error('Email atau kata sandi tidak sesuai.');
+     if(error) {
+      if(error.message.toLowerCase().includes('email not confirmed')) {
+       throw Error('Email belum dikonfirmasi. Periksa kotak masuk/spam email Anda, atau matikan "Confirm email" di Supabase Authentication > Providers > Email.');
+      }
+      if(error.message.toLowerCase().includes('invalid login credentials')) {
+       throw Error('Email belum terdaftar atau kata sandi salah. Jika belum pernah mendaftar di proyek Supabase ini, silakan klik tab "Daftar Akun" di atas.');
+      }
+      throw Error(error.message);
+     }
      await enter(data.session);
     }
    } catch(error) { status.textContent = error.message; submitBtn.disabled = false; }
