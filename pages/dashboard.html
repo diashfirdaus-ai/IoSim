@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebIoT Custom Dashboard - Telkom University</title>
+    <title>WebIoT Custom Dashboard - Institut Teknologi Nasional Bandung</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -270,7 +270,7 @@
                         WebIoT Builder
                         <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">PRO</span>
                     </h1>
-                    <p class="text-[10px] text-gray-400 font-medium tracking-wide">Telkom University &bull; Custom Dashboard Engine</p>
+                    <p class="text-[10px] text-gray-400 font-medium tracking-wide">Institut Teknologi Nasional Bandung &bull; Custom Dashboard Engine</p>
                 </div>
             </div>
 
@@ -279,11 +279,14 @@
             <!-- Navigation Button Back to Home Selector -->
             <a href="index.html" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700/50 text-xs font-bold text-gray-200 transition-all hover:scale-105 active:scale-95">
                 <i class="fas fa-arrow-left text-emerald-400"></i>
-                <span>Kembali ke Dashboard</span>
+                <span>Beranda</span>
             </a>
         </div>
         
         <div class="flex items-center gap-3">
+            <a href="jetson.html" target="_blank" rel="noopener" class="lab-dashboard-link">Jetson Nano ↗</a>
+            <a href="esp.html" target="_blank" rel="noopener" class="lab-dashboard-link">ESP32 ↗</a>
+            <a href="raspi.html" target="_blank" rel="noopener" class="lab-dashboard-link">Raspberry Pi ↗</a>
             <!-- Add Widget Direct Menu Button -->
             <button onclick="openAddWidgetModal()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-900/30 hover:scale-105 active:scale-95 border border-emerald-400/30">
                 <i class="fas fa-plus-circle text-emerald-200 text-sm"></i>
@@ -620,9 +623,9 @@
                 <!-- App Top Bar Inside Phone -->
                 <div class="bg-[#0f172a] border-b border-gray-800/80 px-4 py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
                     <div class="flex items-center gap-2.5">
-                        <img src="telu_logo.png" alt="Tel-U Logo" class="w-7 h-7 rounded-full bg-white p-0.5 object-contain shadow">
+                        <img src="itenas_logo.png" alt="ITENAS Logo" class="w-24 h-10 rounded bg-white p-1 object-contain shadow">
                         <div>
-                            <div class="text-xs font-bold text-white leading-tight">Tel-U Smart IoT</div>
+                            <div class="text-xs font-bold text-white leading-tight">ITENAS Smart IoT</div>
                             <div class="text-[9px] text-emerald-400 font-semibold flex items-center gap-1">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Live Mobile Sync
                             </div>
@@ -749,7 +752,7 @@
                             <i class="fas fa-cubes"></i>
                         </div>
                         <h3 class="text-base font-extrabold text-white mb-2">Dashboard Belum Memiliki Widget</h3>
-                        <p class="text-xs text-gray-400 leading-relaxed mb-6">Mulai rancang dashboard IoT Anda dengan menambahkan tombol saklar relay, slider PWM, gauge meter, atau penampil angka telemetri.</p>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-6">Klik Tambah Widget untuk membuat saklar ON/OFF, tombol tekan, slider, gauge, atau penampil nilai sensor. Pilih virtual pin yang sama dengan kode simulator (misalnya V0), lalu matikan Mode Edit untuk mengoperasikan widget. Buka simulator di tab lain dengan akun yang sama.</p>
                         <div class="flex flex-wrap gap-3 justify-center">
                             <button onclick="openAddWidgetModal()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
                                 <i class="fas fa-plus-circle"></i> + Tambah Widget Baru

@@ -4,7 +4,7 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'private, no-store');
   if(req.method !== 'GET') return res.status(405).end();
   const page = req.query.name;
-  if(!['index','dashboard','esp','raspi'].includes(page)) return res.status(404).end();
+  if(!['index','dashboard','esp','raspi','jetson','jetson-learn'].includes(page)) return res.status(404).end();
   const authorization = req.headers.authorization || '';
   if(!authorization.startsWith('Bearer ') || authorization.length < 8) return res.status(401).json({error:'Silakan masuk.'});
   try {

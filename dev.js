@@ -36,7 +36,12 @@ try {
 }
 
 const configHandler = require('./api/config.js');
-const pageHandler = require('./api/page.js');
+// Muat ulang handler halaman setiap permintaan selama pengembangan lokal.
+function pageHandler(req, res) {
+  const modulePath = require.resolve('./api/page.js');
+  delete require.cache[modulePath];
+  return require(modulePath)(req, res);
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -103,7 +108,7 @@ function start(port) {
   });
   server.listen(port, () => {
     console.log(`\n==================================================`);
-    console.log(`🚀 Tel-U IoT Lab lokal berhasil dijalankan!`);
+    console.log(`🚀 ITENAS IoT Lab lokal berhasil dijalankan!`);
     console.log(`👉 Buka browser di: http://localhost:${port}`);
     console.log(`==================================================\n`);
   });

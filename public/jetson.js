@@ -1,0 +1,13 @@
+const jetsonParts={
+gpu:['Modul komputasi & GPU','GPU NVIDIA Maxwell dengan 128 CUDA cores membantu komputasi paralel untuk pengolahan citra dan inferensi AI. Heatsink membantu melepaskan panas.','Bandingkan CPU untuk alur program umum dan GPU untuk banyak operasi paralel.'],
+gpio:['Header ekspansi 40 pin','Header menyediakan GPIO dan antarmuka seperti I2C, SPI, serta UART. Nomor pin fisik berbeda dengan kanal virtual V0.','Rancang kontrol LED. Periksa pinout resmi serta level tegangan sebelum menggunakan perangkat fisik.'],
+camera:['Konektor kamera CSI','Kamera memasok frame citra. Program menyiapkan gambar sebelum menjalankan model visi komputer.','Buat diagram kamera → praproses → deteksi objek → keputusan.'],
+usb:['USB & Ethernet','USB menghubungkan periferal seperti keyboard atau kamera USB. Ethernet menyediakan koneksi jaringan kabel.','Diskusikan pengolahan lokal dibanding mengirim frame kamera ke cloud.'],
+power:['Daya & HDMI','Papan memerlukan catu daya yang sesuai. HDMI menghubungkan monitor untuk desktop dan hasil program.','Identifikasi konektor daya dan monitor. Ikuti kebutuhan daya pada panduan resmi varian papan.']};
+function evaluateJetsonDemo(scene,threshold){const score={person:92,uncertain:55,empty:8}[scene];if(typeof score!=='number'||!Number.isFinite(threshold)||threshold<10||threshold>100)throw Error('Input tidak valid');return {score,active:score>=threshold};}
+if(typeof document!=='undefined'){
+const el=id=>document.getElementById(id),buttons=document.querySelectorAll('[data-part]');
+function selectPart(key){const part=jetsonParts[key];['part-title','part-description','part-example'].forEach((id,i)=>el(id).textContent=part[i]);buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.part===key)));}
+buttons.forEach(b=>b.addEventListener('click',()=>selectPart(b.dataset.part)));selectPart('gpu');let started=false;
+function run(){const r=evaluateJetsonDemo(el('scene').value,Number(el('threshold').value));el('led').classList.toggle('on',r.active);el('demo-status').textContent=r.active?'LED virtual ON':'LED virtual OFF';el('demo-result').textContent=`Skor buatan ${r.score}% ${r.active?'mencapai':'di bawah'} ambang ${el('threshold').value}%.`;}
+el('run-demo').addEventListener('click',()=>{started=true;run();});el('scene').addEventListener('change',()=>{if(started)run();});el('threshold').addEventListener('input',()=>{el('threshold-label').textContent=el('threshold').value+'%';if(started)run();});el('reset-demo').addEventListener('click',()=>{started=false;el('scene').value='person';el('threshold').value=70;el('threshold-label').textContent='70%';el('led').classList.remove('on');el('demo-status').textContent='Siap mencoba';el('demo-result').textContent='Pilih skenario, lalu jalankan demo.';});}

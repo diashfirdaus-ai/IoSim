@@ -5,14 +5,15 @@ const loginShell = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Masuk / Daftar • Tel-U IoT Lab</title>
+  <title>Masuk / Daftar • ITENAS IoT Lab</title>
   <link rel="stylesheet" href="/flat.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.js"></script>
   <script defer src="/auth.js"></script>
 </head>
 <body class="auth-page">
   <main class="auth-card">
-    <span class="eyebrow">TELKOM UNIVERSITY · IOT LAB</span>
+    <img src="/itenas_logo.png" alt="Logo ITENAS — Institut Teknologi Nasional Bandung" class="auth-logo">
+    <span class="eyebrow">ITENAS BANDUNG · IOT LAB</span>
     <h1 id="auth-title">Satu akun.<br>Seluruh eksperimen.</h1>
     <p id="auth-desc">Rancang rangkaian, jalankan simulasi, dan pantau perangkat dalam satu ruang belajar.</p>
     
@@ -43,7 +44,7 @@ const appShell = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tel-U IoT Lab</title>
+  <title>ITENAS IoT Lab</title>
   <link rel="stylesheet" href="/flat.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.js"></script>
   <script defer src="/auth.js"></script>
@@ -55,14 +56,15 @@ const appShell = `<!doctype html>
     }
     .spinner {
       width: 44px; height: 44px; border: 4px solid #e2e8f0;
-      border-top-color: #be123c; border-radius: 50%;
+      border-top-color: #c2410c; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
   </style>
 </head>
 <body class="auth-page">
   <div class="loader-box">
-    <span class="eyebrow">TELKOM UNIVERSITY · IOT LAB</span>
+    <img src="/itenas_logo.png" alt="Logo ITENAS — Institut Teknologi Nasional Bandung" class="auth-logo">
+    <span class="eyebrow">ITENAS BANDUNG · IOT LAB</span>
     <div class="spinner"></div>
     <p id="status" style="font-size: 14px; font-weight: 600; color: #475569; margin: 0;">Memverifikasi sesi laboratorium…</p>
   </div>
@@ -70,7 +72,7 @@ const appShell = `<!doctype html>
 </html>`;
 
 fs.writeFileSync('public/login.html', loginShell);
-for (const name of ['index', 'dashboard', 'esp', 'raspi']) {
+for (const name of ['index', 'dashboard', 'esp', 'raspi', 'jetson','jetson-learn']) {
   fs.writeFileSync(`public/${name}.html`, appShell);
 }
 

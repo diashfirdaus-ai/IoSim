@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITENAS WebIoT Simulator - Jetson Nano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1e1e2f; color: #fff; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #workspace { position: relative; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 20px 20px; overflow: hidden; }
+        
+        #wires-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 35; }
+        
+        .component { position: absolute; background: #2a2a40; border: 2px solid #4a4a6a; border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); cursor: grab; z-index: 20; display: flex; flex-direction: column; min-width: 120px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .component:active { cursor: grabbing; box-shadow: 0 12px 24px rgba(0,0,0,0.6); border-color: #6a6a9a; z-index: 30; }
+        .component-header { background: #1a1a2e; padding: 8px 12px; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: 600; font-size: 14px; text-align: center; border-bottom: 2px solid #4a4a6a; pointer-events: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .component-body { padding: 12px; display: flex; justify-content: space-between; gap: 20px; }
+        
+        .pin-group { display: flex; flex-direction: column; gap: 12px; }
+        .pin-group.right { align-items: flex-end; }
+        .pin-row { display: flex; align-items: center; gap: 8px; }
+        .pin { width: 16px; height: 16px; background-color: #cbd5e1; border: 3px solid #475569; border-radius: 50%; cursor: crosshair; transition: all 0.2s ease; position: relative; }
+        .pin:hover { background-color: #fbbf24; transform: scale(1.2); border-color: #fff; }
+        .pin.selected { background-color: #ef4444; border-color: #fff; transform: scale(1.3); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .pin-label { font-size: 12px; font-family: monospace; color: #94a3b8; pointer-events: none; }
+        
+        /* Jetson Nano Custom Styles (40-Pin Header) */
+        .jetson-board { background-color: #1b4d2e; border: 2px solid #0f2d1b; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5); min-width: 250px; display: flex; gap: 15px; padding: 12px !important; }
+        .jetson-header-block { background: #000; border: 2px solid #222; border-radius: 2px; padding: 4px; display: flex; flex-direction: column; gap: 2px; box-shadow: inset 0 0 5px #000;}
+        .jetson-pin-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .jetson-pin-label { font-size: 9px; font-family: monospace; font-weight: bold; width: 22px; color: #ccc; letter-spacing: -0.5px;}
+        .jetson-pin-label.left { text-align: right; }
+        .jetson-pin-label.right { text-align: left; }
+        .jetson-header-block .pin { border-radius: 2px; width: 10px; height: 10px; border: 1px solid #b8860b; background-color: #d4af37; box-shadow: inset 0 0 3px #000; margin: 0 2px;}
+        .jetson-header-block .pin:hover { background-color: #fbbf24; border-color: #fff; transform: scale(1.2); }
+        .jetson-header-block .pin.selected { background-color: #ef4444; border-color: #fff; transform: scale(1.3); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .jetson-details { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;}
+        .jetson-chip { width: 50px; height: 50px; background: #111; border: 1px solid #000; border-radius: 4px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); margin-bottom: auto; margin-top: auto; z-index: 2;}
+        .jetson-logo-text { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 2px; transform: rotate(-90deg); position: absolute; right: -15px; user-select: none; z-index: 1;}
+
+        .led-bulb { width: 40px; height: 40px; background-color: var(--led-dark, #7f1d1d); border-radius: 50% 50% 10% 10%; margin: 0 auto 10px auto; border: 2px solid #4a4a6a; transition: all 0.05s; position: relative; }
+        .led-bulb::after { content: ''; position: absolute; bottom: -6px; left: 5px; width: 30px; height: 6px; background: #4a4a6a; border-radius: 2px; }
+        .led-bulb.on { background-color: var(--led-main, #ef4444); box-shadow: 0 0 20px var(--led-main, #ef4444), 0 0 40px var(--led-main, #ef4444); border-color: var(--led-border, #fca5a5); }
+        
+        .led-color-red { --led-main: #ef4444; --led-dark: #7f1d1d; --led-border: #fca5a5; }
+        .led-color-green { --led-main: #22c55e; --led-dark: #14532d; --led-border: #86efac; }
+        .led-color-blue { --led-main: #3b82f6; --led-dark: #1e3a8a; --led-border: #93c5fd; }
+        .led-color-yellow { --led-main: #eab308; --led-dark: #713f12; --led-border: #fde047; }
+        .led-color-white { --led-main: #ffffff; --led-dark: #9ca3af; --led-border: #f3f4f6; }
+
+        #context-menu { position: absolute; background: #2a2a40; border: 1px solid #4a4a6a; border-radius: 6px; padding: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; display: none; flex-direction: column; gap: 2px; min-width: 140px; }
+        .ctx-item { padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; color: white; transition: 0.1s; }
+        .ctx-item:hover { background: #3a3a50; }
+        .color-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+
+        .pot-knob-container { width: 50px; height: 50px; background: #333; border-radius: 50%; margin: 0 auto 10px auto; position: relative; border: 2px solid #555; display: flex; align-items: center; justify-content: center; }
+        .pot-knob { width: 30px; height: 30px; background: #555; border-radius: 50%; position: relative; transform: rotate(-135deg); transition: transform 0.1s; }
+        .pot-indicator { width: 4px; height: 15px; background: white; position: absolute; top: 2px; left: 13px; border-radius: 2px; }
+        
+        .push-button { width: 30px; height: 30px; background-color: #ef4444; border-radius: 50%; border: 4px solid #991b1b; cursor: pointer; transition: 0.1s; margin: 0 auto 10px; box-shadow: 0 4px 0 #7f1d1d; }
+        .push-button:active, .push-button.pressed { transform: translateY(4px); box-shadow: 0 0 0 #7f1d1d; }
+        .buzzer-body { width: 40px; height: 40px; background-color: #111; border-radius: 50%; border: 3px solid #333; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; transition: 0.1s; }
+        .buzzer-body::after { content: ''; width: 15px; height: 15px; background: #333; border-radius: 50%; }
+        .buzzer-body.on { border-color: #3b82f6; box-shadow: 0 0 15px #3b82f6; }
+        .buzzer-body.on::after { background: #3b82f6; }
+        .sensor-body { background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 4px; padding: 10px; color: #334155; text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 12px;}
+        .dht-body { background: #bae6fd; border-color: #38bdf8; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.5) 5px, rgba(255,255,255,0.5) 10px); }
+        .ldr-body { background: #fef08a; border-color: #eab308; border-radius: 50%; width: 40px; height: 40px; margin: 0 auto 10px; position: relative;}
+        .ldr-body::after { content: 'S'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); color: #ca8a04; font-size: 24px; font-family: monospace; }
+        .slider-control { width: 100%; margin-top: 5px; cursor: pointer; }
+        
+        .rgb-led-bulb { width: 45px; height: 45px; background-color: #ffffff; border-radius: 50% 50% 10% 10%; margin: 0 auto 10px auto; border: 2px solid #ccc; transition: background-color 0.1s, box-shadow 0.1s; position: relative; box-shadow: inset -5px -5px 10px rgba(0,0,0,0.2); }
+        .rgb-led-bulb::after { content: ''; position: absolute; bottom: -6px; left: 7px; width: 31px; height: 6px; background: #ccc; border-radius: 2px; }
+        
+        .lcd-board { background: #1b5e20; border: 2px solid #000; padding: 10px; width: 180px; height: 70px; border-radius: 4px; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        .lcd-screen { background: #558b2f; width: 100%; height: 100%; border: inset 3px #33691e; padding: 4px; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; color: rgba(27, 94, 32, 0.3); line-height: 1.2; overflow: hidden; text-transform: uppercase; transition: 0.2s; }
+        .lcd-screen.on { background: #8bc34a; color: #1b5e20; text-shadow: 1px 1px 0px rgba(139, 195, 74, 0.8); box-shadow: inset 0 0 10px rgba(0,0,0,0.3); }
+        .lcd-row { height: 50%; white-space: pre; line-height: 1.2; word-break: break-all; }
+
+        .oled-board { background: #111; border: 2px solid #222; border-radius: 4px; padding: 8px; width: 100px; height: 70px; }
+        .oled-screen { background: #000; width: 100%; height: 100%; border: 1px solid #333; border-radius: 2px; padding: 2px; font-family: monospace; font-size: 10px; color: #000; transition: 0.2s; overflow: hidden; }
+        .oled-screen.on { color: #0ff; text-shadow: 0 0 2px #0ff; box-shadow: 0 0 5px rgba(0, 255, 255, 0.1); }
+
+        #toolbar { height: 60px; background: #11111a; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+        .btn-delete-comp { position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 40; border: 2px solid #2a2a40; }
+        .component:hover .btn-delete-comp { opacity: 1; }
+    </style>
+<link rel="stylesheet" href="/flat.css"><link rel="stylesheet" href="/jetson-simulator.css"><script src="/bridge.js"></script></head>
+<body>
+
+    <!-- Modal Login Mahasiswa -->
+    <div id="modal-login" class="fixed inset-0 bg-[#0f172a] z-[200] flex items-center justify-center transition-opacity duration-300">
+        <div class="bg-[#1e293b] border border-[#334155] rounded-2xl p-8 w-[400px] shadow-2xl flex flex-col items-center">
+            <i class="fas fa-microchip text-red-500 text-5xl mb-4"></i>
+            <h2 class="text-2xl font-bold text-white tracking-wider mb-1">WebIoT Simulator</h2>
+            <p class="text-xs text-gray-400 mb-8 uppercase tracking-widest font-semibold">Institut Teknologi Nasional Bandung</p>
+            
+            <div class="w-full mb-4">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Nomor Induk Mahasiswa (NIM)</label>
+                <div class="relative">
+                    <i class="fas fa-id-card absolute left-3 top-3 text-gray-500"></i>
+                    <input type="text" id="login-nim" placeholder="Contoh: 1101201234" class="w-full bg-[#0f172a] border border-[#334155] rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-red-500 font-mono transition">
+                </div>
+            </div>
+            
+            <div class="w-full mb-8">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Nama Lengkap</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute left-3 top-3 text-gray-500"></i>
+                    <input type="text" id="login-nama" placeholder="Masukkan Nama Anda" class="w-full bg-[#0f172a] border border-[#334155] rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-red-500 transition">
+                </div>
+            </div>
+            
+            <button id="btn-login" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg transition flex justify-center items-center gap-2">
+                Masuk Workspace <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Konfigurasi Server -->
+    <div id="modal-server" class="fixed inset-0 bg-black/70 z-[100] hidden items-center justify-center">
+        <div class="bg-[#1e293b] border border-[#334155] rounded-xl p-6 w-96 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-network-wired text-green-400 mr-2"></i> Pengaturan WebSocket</h3>
+            <p class="text-xs text-gray-400 mb-4">Masukkan alamat IP dari Node.js Server.</p>
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Server URL</label>
+                <input type="text" id="config-ws-url" placeholder="Supabase Realtime" class="w-full bg-[#0f172a] border border-[#334155] rounded px-3 py-2 text-white focus:outline-none focus:border-green-500 font-mono">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeServerConfig()" class="px-4 py-2 rounded text-sm font-bold text-gray-400 hover:text-white transition">Batal</button>
+                <button onclick="saveServerConfig()" id="btn-save-server" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-bold text-white shadow transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="context-menu"></div>
+
+    <div id="toolbar">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-microchip text-red-500 text-2xl"></i>
+            <div class="flex flex-col">
+                <h1 class="text-xl font-bold tracking-wider leading-tight">ITENAS WebIoT Sim</h1>
+                <span class="text-[10px] text-red-400 tracking-wide font-medium">Jetson Nano · Python / GPIO (BCM)</span>
+            </div>
+            <div class="h-6 w-px bg-gray-600 mx-2"></div>
+            <a href="index.html" id="btn-back-home" title="Beranda" style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:10px;background:rgba(232,25,44,0.12);border:1px solid rgba(232,25,44,0.35);color:#f0f4ff;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s,border-color 0.2s,transform 0.15s;white-space:nowrap;" onmouseover="this.style.background='rgba(232,25,44,0.28)';this.style.borderColor='rgba(232,25,44,0.7)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(232,25,44,0.12)';this.style.borderColor='rgba(232,25,44,0.35)';this.style.transform='translateY(0)'">
+                <i class="fas fa-home" style="color:#e8192c;font-size:13px;"></i> Beranda
+            </a>
+            <a href="jetson-learn.html" target="_blank" rel="noopener" class="lab-dashboard-link">Pengenalan Jetson ↗</a>
+            <a href="dashboard.html" target="_blank" rel="noopener" class="lab-dashboard-link" title="Buka Dashboard Widget di tab baru agar simulasi tetap berjalan">
+                <i class="fas fa-sliders" aria-hidden="true"></i> Dashboard Widget <span class="lab-new-tab">↗</span>
+            </a>
+        </div>
+        <div class="flex gap-4 items-center">
+            
+            <div id="user-profile" class="hidden flex items-center gap-3 bg-[#2a2a40] border border-[#4a4a6a] px-3 py-1.5 rounded-full">
+                <div class="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-xs font-bold text-white" id="profile-initial">?</div>
+                <div class="flex flex-col">
+                    <span id="profile-name" class="text-xs font-bold text-white leading-none">Mahasiswa</span>
+                    <span id="profile-nim" class="text-[9px] text-red-300 font-mono">NIM</span>
+                </div>
+                <button id="btn-save-cloud" class="ml-2 text-gray-400 hover:text-green-400 transition" title="Simpan rangkaian di browser ini">
+                    <i class="fas fa-save text-lg"></i>
+                </button>
+                <button id="btn-logout" class="ml-1 text-gray-400 hover:text-red-400 transition" title="Keluar">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+
+            <div class="h-6 w-px bg-gray-600 mx-1 hidden" id="divider-profile"></div>
+
+            <button id="btn-export" class="text-gray-400 hover:text-blue-400 transition" title="Export Project ke File (.json)">
+                <i class="fas fa-file-export text-xl"></i>
+            </button>
+            <button id="btn-import" class="text-gray-400 hover:text-green-400 transition" title="Import Project dari File (.json)">
+                <i class="fas fa-file-import text-xl"></i>
+            </button>
+            <input type="file" id="import-file" accept=".json" class="hidden">
+
+            <div class="h-6 w-px bg-gray-600 mx-1"></div>
+
+            <button onclick="openServerConfig()" class="text-gray-400 hover:text-white transition" title="Status Supabase Realtime">
+                <i class="fas fa-network-wired text-xl"></i>
+            </button>
+            
+            <div class="h-6 w-px bg-gray-600 mx-1"></div>
+            
+            <button id="btn-clear-wires" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow transition flex items-center gap-2 text-sm font-medium">
+                <i class="fas fa-cut"></i> Hapus Kabel
+            </button>
+            <button id="btn-run" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow transition flex items-center gap-2 text-sm font-bold">
+                <i class="fas fa-play"></i> Mulai Simulasi
+            </button>
+        </div>
+    </div>
+
+    <div id="simulator-layout" class="flex w-full" style="height: calc(100vh - 60px);">
+        
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-64 bg-[#11111a] border-r border-[#333] p-4 flex flex-col gap-3 z-40 overflow-y-auto shrink-0 custom-scrollbar">
+            <h2 class="text-gray-400 font-bold mb-2 uppercase text-xs tracking-wider">Komputer AI</h2>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="jetson">
+                <i class="fas fa-microchip text-red-500 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Jetson Nano 4 GB</span>
+            </div>
+
+            <h2 class="text-gray-400 font-bold mt-4 mb-2 uppercase text-xs tracking-wider">Komponen Dasar</h2>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="led">
+                <i class="far fa-lightbulb text-yellow-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">LED Merah</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="potensiometer">
+                <i class="fas fa-circle-notch text-green-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Potensiometer</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="button">
+                <i class="far fa-dot-circle text-red-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Push Button</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="buzzer">
+                <i class="fas fa-bullhorn text-blue-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Buzzer</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="dht22">
+                <i class="fas fa-temperature-high text-cyan-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Sensor DHT22</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="ldr">
+                <i class="fas fa-sun text-yellow-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">Sensor LDR</span>
+            </div>
+            
+            <h2 class="text-gray-400 font-bold mt-4 mb-2 uppercase text-xs tracking-wider">Display & RGB</h2>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="rgbled">
+                <i class="fas fa-lightbulb text-purple-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">RGB LED</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="lcdi2c">
+                <i class="fas fa-desktop text-green-500 text-xl w-6 text-center"></i> <span class="font-medium text-sm">LCD 16x2 (I2C)</span>
+            </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="oled">
+                <i class="fas fa-mobile-alt text-cyan-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">SSD1306 OLED</span>
+            </div>
+        </div>
+
+        <!-- Workspace -->
+        <div id="workspace" class="flex-1 min-w-[200px]">
+            <div class="jetson-help">Rangkaian awal: BCM18 (pin fisik 12) → LED, GND → katode. Klik Mulai Simulasi.<br>Python/GPIO dasar disimulasikan di browser; CUDA, JetPack, kamera, dan AI tidak dijalankan.</div>
+            <svg id="wires-layer"></svg>
+        </div>
+
+        <div id="editor-resizer" class="w-1.5 bg-[#333] hover:bg-[#ef4444] cursor-col-resize z-50 transition-colors flex-shrink-0" title="Geser untuk menyesuaikan ukuran Code Editor"></div>
+
+        <!-- Editor Panel -->
+        <div id="editor-panel" class="w-[450px] bg-[#1e1e1e] flex flex-col z-40 relative flex-shrink-0">
+            <!-- Header Editor -->
+            <div class="bg-[#252526] text-sm flex border-b border-[#333] items-center">
+                <div class="px-4 py-2 bg-[#1e1e1e] text-blue-400 border-t-2 border-blue-400 font-medium">main.py</div>
+            </div>
+            <textarea id="code-editor" class="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-4 font-mono text-sm outline-none resize-none" spellcheck="false">
+import Jetson.GPIO as GPIO
+import time
+
+led_pin = 18
+# BCM18 = pin fisik 12 pada header Jetson Nano
+
+# Inisialisasi Mode Pin
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(led_pin, GPIO.OUT)
+
+print("Sistem Jetson Nano Dimulai!")
+
+while True:
+    GPIO.output(led_pin, GPIO.HIGH)
+    print("Lampu Nyala")
+    time.sleep(1)
+    
+    GPIO.output(led_pin, GPIO.LOW)
+    print("Lampu Mati")
+    time.sleep(1)
+</textarea>
+            <div class="h-48 bg-[#0d0d0d] border-t border-[#333] flex flex-col">
+                <div class="text-xs text-gray-400 px-3 py-1 border-b border-[#333] bg-[#1a1a1a] flex justify-between">
+                    <span><i class="fas fa-terminal"></i> Serial Monitor / Console</span>
+                    <button id="btn-clear-log" class="hover:text-white"><i class="fas fa-trash"></i></button>
+                </div>
+                <div id="console-output" class="p-2 font-mono text-xs overflow-y-auto flex-1 text-gray-300">
+                    <div class="text-gray-400">> Simulator Started. Python Engine Ready.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.iotEngine = {};
+        window.currentUserData = null;
+
+        const modalServer = document.getElementById('modal-server');
+        let wsUrl = 'Supabase Realtime';
+        
+        function openServerConfig() { alert('Supabase Realtime aktif. Kanal privat akun Anda terhubung otomatis.'); }
+        function closeServerConfig() {
+            modalServer.style.display = 'none';
+        }
+        function saveServerConfig() {
+            const url = document.getElementById('config-ws-url').value;
+            if(url.startsWith('ws://') || url.startsWith('wss://')) {
+                wsUrl = url;
+                if (window.currentUserData && window.currentUserData.nim) {
+                    localStorage.setItem(`webiot_ws_url_${window.currentUserData.nim}`, wsUrl);
+                }
+                const btnSave = document.getElementById('btn-save-server');
+                btnSave.innerHTML = '<i class="fas fa-check"></i> Tersimpan Lokal!';
+                btnSave.classList.replace('bg-blue-600', 'bg-green-600');
+                setTimeout(() => {
+                    closeServerConfig();
+                    btnSave.innerHTML = 'Simpan';
+                    btnSave.classList.replace('bg-green-600', 'bg-blue-600');
+                    if (window.initSimulatorWebSocket) { window.initSimulatorWebSocket(); }
+                }, 800);
+            } else {
+                alert('Format URL tidak valid! Harus diawali dengan ws:// atau wss://');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const state = {
+                activeComponent: null, offsetX: 0, offsetY: 0, selectedPin: null,
+                wires: [], isSimulating: false, runVersion: 0,
+                hw: { pins: {}, analog: {}, digitalInput: {} }, 
+                isDraggingWire: false, activeWire: null, activeWireHandle: null,
+                isResizingEditor: false 
+            };
+
+            const workspace = document.getElementById('workspace');
+            const wiresLayer = document.getElementById('wires-layer');
+            const btnClear = document.getElementById('btn-clear-wires');
+            const btnRun = document.getElementById('btn-run');
+            const consoleOutput = document.getElementById('console-output');
+            const codeEditor = document.getElementById('code-editor');
+            const editorResizer = document.getElementById('editor-resizer');
+            const editorPanel = document.getElementById('editor-panel');
+
+            window.iotEngine.getState = () => state;
+            window.iotEngine.getCode = () => codeEditor.value;
+            window.iotEngine.setCode = (c) => codeEditor.value = c;
+            window.iotEngine.clearWorkspace = () => {
+                document.querySelectorAll('.component').forEach(c => c.remove());
+                state.wires = [];
+                renderWires();
+            };
+            window.iotEngine.addWire = (wireData) => { state.wires.push(wireData); };
+            window.iotEngine.renderWires = () => { renderWires(); };
+            window.iotEngine.evaluateCircuit = () => { evaluateCircuit(); };
+
+            const modalLogin = document.getElementById('modal-login');
+            const inputNim = document.getElementById('login-nim');
+            const inputNama = document.getElementById('login-nama');
+            const btnLogin = document.getElementById('btn-login');
+            const userProfile = document.getElementById('user-profile');
+            const divProfile = document.getElementById('divider-profile');
+
+            async function loadWorkspaceFromStorage() {
+                if(!window.currentUserData) return;
+                const dbKey = `webiot_workspace_${window.currentUserData.nim}_jetson_python`; // pisah db untuk py
+                let data = null;
+                if (window.IoT && window.IoT.loadWorkspace) {
+                    data = await window.IoT.loadWorkspace('jetson');
+                }
+                if (!data) {
+                    const savedData = localStorage.getItem(dbKey);
+                    if (savedData) {
+                        try { data = JSON.parse(savedData); } catch (e) {}
+                    }
+                }
+                
+                if(data) {
+                    try {
+                        window.iotEngine.clearWorkspace();
+                        if(data.code) { codeEditor.value = data.code; }
+                        if(data.components) { data.components.forEach(c => { window.spawnComponent(c.type, c.x, c.y, c.uid, c.value, c.color); }); }
+                        if(data.wires) {
+                            setTimeout(() => {
+                                data.wires.forEach(w => {
+                                    const pin1 = document.querySelector(`[data-pin-id="${w.pin1}"]`);
+                                    const pin2 = document.querySelector(`[data-pin-id="${w.pin2}"]`);
+                                    if(pin1 && pin2) {
+                                        state.wires.push({ 
+                                            pin1, pin2, color: w.color, 
+                                            fixedMidX: w.fixedMidX, fixedMidY1: w.fixedMidY1, fixedMidY2: w.fixedMidY2 
+                                        });
+                                    }
+                                });
+                                renderWires(); evaluateCircuit();
+                                logToConsole(`Workspace dimuat dari database cloud.`, 'text-green-400');
+                            }, 100); 
+                        }
+                    } catch(e) { console.error("Gagal memuat", e); }
+                } else {
+                    const board = window.spawnComponent('jetson', 30, 85);
+                    const led = window.spawnComponent('led', 80, 500);
+                    const wire = (a, b, color) => state.wires.push({pin1:a, pin2:b, color});
+                    wire(board.querySelector('[data-pin-name="18"]'), led.querySelector('[data-pin-name="anode"]'), '#84cc16');
+                    wire(board.querySelector('[data-pin-name="gnd"]'), led.querySelector('[data-pin-name="cathode"]'), '#94a3b8');
+                    renderWires(); evaluateCircuit();
+                }
+            }
+
+            function saveWorkspaceToStorage() {
+                if(!window.currentUserData) return;
+                const components = [];
+                document.querySelectorAll('.component').forEach(comp => {
+                    const type = comp.getAttribute('data-type');
+                    let color = null;
+                    if(type === 'led') color = comp.querySelector('.led-bulb')?.className.match(/led-color-(\w+)/)?.[1];
+                    components.push({ type, uid: comp.getAttribute('data-uid'), x: parseInt(comp.style.left), y: parseInt(comp.style.top), value: comp.getAttribute('data-value') || null, color });
+                });
+                
+                const wiresData = state.wires.map(w => ({
+                    pin1: w.pin1.getAttribute('data-pin-id'), pin2: w.pin2.getAttribute('data-pin-id'), color: w.color, 
+                    fixedMidX: w.fixedMidX !== undefined ? w.fixedMidX : null, fixedMidY1: w.fixedMidY1 !== undefined ? w.fixedMidY1 : null, fixedMidY2: w.fixedMidY2 !== undefined ? w.fixedMidY2 : null
+                }));
+
+                const dataToSave = { board: 'jetson', language: 'python', components: components, wires: wiresData, code: codeEditor.value, timestamp: new Date().toISOString() };
+                try { localStorage.setItem(`webiot_workspace_${window.currentUserData.nim}_jetson_python`, JSON.stringify(dataToSave)); } catch(e){}
+                if (window.IoT && window.IoT.saveWorkspace) {
+                    window.IoT.saveWorkspace('jetson', dataToSave);
+                }
+                
+                const btnSave = document.getElementById('btn-save-cloud');
+                const origHtml = btnSave.innerHTML;
+                btnSave.innerHTML = `<i class="fas fa-check text-green-400"></i>`;
+                logToConsole(`Progress disimpan ke database cloud.`, 'text-green-400');
+                setTimeout(() => { btnSave.innerHTML = origHtml; }, 2000);
+            }
+
+            window.currentUserData = { nim: window.IoT.user.id, nama: window.IoT.user.email };
+            document.getElementById('profile-name').textContent = window.IoT.user.email;
+            document.getElementById('profile-nim').textContent = 'Akun terverifikasi';
+            document.getElementById('profile-initial').textContent = window.IoT.user.email[0].toUpperCase();
+            userProfile.classList.remove('hidden'); divProfile.classList.remove('hidden');
+            modalLogin.remove();
+            // Tunggu sampai template komponen dan engine selesai dipasang.
+            setTimeout(() => { loadWorkspaceFromStorage(); window.initSimulatorWebSocket?.(); }, 0);
+            document.getElementById('btn-logout').addEventListener('click', async () => {
+                saveWorkspaceToStorage(); await window.IoT.client.auth.signOut(); location.reload();
+            });
+
+            document.getElementById('btn-save-cloud').addEventListener('click', saveWorkspaceToStorage);
+            
+            document.getElementById('btn-export').addEventListener('click', () => {
+                try {
+                    const components = [];
+                    document.querySelectorAll('.component').forEach(comp => {
+                        const type = comp.getAttribute('data-type');
+                        let color = type === 'led' ? comp.querySelector('.led-bulb')?.className.match(/led-color-(\w+)/)?.[1] : null;
+                        components.push({ type, uid: comp.getAttribute('data-uid'), x: parseInt(comp.style.left), y: parseInt(comp.style.top), value: comp.getAttribute('data-value'), color });
+                    });
+                    const wiresExp = state.wires.map(w => ({
+                        pin1: w.pin1.getAttribute('data-pin-id'), pin2: w.pin2.getAttribute('data-pin-id'), color: w.color, 
+                        fixedMidX: w.fixedMidX, fixedMidY1: w.fixedMidY1, fixedMidY2: w.fixedMidY2
+                    }));
+                    const projectData = { board: 'jetson', language: 'python', components, wires: wiresExp, code: codeEditor.value, version: "2.0" };
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData, null, 2));
+                    const a = document.createElement('a'); a.setAttribute("href", dataStr);
+                    a.setAttribute("download", window.currentUserData ? `WebIoT_${window.currentUserData.nim}_Jetson.json` : `WebIoT_Jetson.json`);
+                    document.body.appendChild(a); a.click(); a.remove();
+                } catch(e) {}
+            });
+
+            document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+
+            document.getElementById('import-file').addEventListener('change', (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if ((data.board && data.board !== 'jetson') || data.components?.some(c => c.type === 'raspi' || c.type === 'esp32') || (data.language && data.language !== 'python')) {
+                            alert("File ini bukan proyek Jetson Nano. Buka di simulator perangkat asalnya."); return;
+                        }
+                        window.iotEngine.clearWorkspace();
+                        if(data.code) { codeEditor.value = data.code; }
+                        data.components.forEach(c => window.spawnComponent(c.type, c.x, c.y, c.uid, c.value, c.color));
+                        setTimeout(() => {
+                            data.wires.forEach(w => {
+                                const pin1 = document.querySelector(`[data-pin-id="${w.pin1}"]`); const pin2 = document.querySelector(`[data-pin-id="${w.pin2}"]`);
+                                if (pin1 && pin2) window.iotEngine.addWire({ pin1, pin2, color: w.color, fixedMidX: w.fixedMidX, fixedMidY1: w.fixedMidY1, fixedMidY2: w.fixedMidY2 });
+                            });
+                            window.iotEngine.renderWires(); window.iotEngine.evaluateCircuit();
+                        }, 200); 
+                    } catch(err) { alert("Format file tidak valid!"); }
+                };
+                reader.readAsText(file); e.target.value = ''; 
+            });
+
+            editorResizer.addEventListener('mousedown', (e) => { state.isResizingEditor = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
+
+            function trimConsole() { while (consoleOutput.childElementCount > 100) consoleOutput.removeChild(consoleOutput.firstChild); consoleOutput.scrollTop = consoleOutput.scrollHeight; }
+            function logToConsole(msg, colorClass = "text-gray-300") { const div = document.createElement('div'); div.className = colorClass; div.innerText = `> ${msg}`; consoleOutput.appendChild(div); trimConsole(); }
+            document.getElementById('btn-clear-log').addEventListener('click', () => consoleOutput.innerHTML = '');
+
+            const contextMenu = document.getElementById('context-menu');
+            function showContextMenu(x, y, options, title) {
+                contextMenu.innerHTML = `<div class="text-[10px] text-gray-400 px-2 py-1 border-b border-[#4a4a6a] mb-1 font-bold uppercase tracking-wider">${title}</div>`;
+                options.forEach(opt => {
+                    const item = document.createElement('div'); item.className = 'ctx-item';
+                    item.innerHTML = `<div class="color-dot" style="background:${opt.hex}"></div> ${opt.name}`;
+                    item.onclick = () => { opt.action(); contextMenu.style.display = 'none'; }; contextMenu.appendChild(item);
+                });
+                contextMenu.style.display = 'flex';
+                let posX = x; let posY = y;
+                if (posX + contextMenu.offsetWidth > window.innerWidth) posX -= contextMenu.offsetWidth;
+                if (posY + contextMenu.offsetHeight > window.innerHeight) posY -= contextMenu.offsetHeight;
+                contextMenu.style.left = `${posX}px`; contextMenu.style.top = `${posY}px`;
+            }
+            document.addEventListener('click', (e) => { if (contextMenu.style.display === 'flex' && !e.target.closest('#context-menu')) contextMenu.style.display = 'none'; });
+
+            workspace.addEventListener('contextmenu', (e) => {
+                const targetLED = e.target.closest('.component[data-type="led"]');
+                if (targetLED) {
+                    e.preventDefault();
+                    showContextMenu(e.clientX, e.clientY, [
+                        { name: 'Merah', hex: '#ef4444', action: () => changeLEDColor(targetLED, 'red', 'Merah') },
+                        { name: 'Hijau', hex: '#22c55e', action: () => changeLEDColor(targetLED, 'green', 'Hijau') },
+                        { name: 'Biru', hex: '#3b82f6', action: () => changeLEDColor(targetLED, 'blue', 'Biru') },
+                        { name: 'Kuning', hex: '#eab308', action: () => changeLEDColor(targetLED, 'yellow', 'Kuning') },
+                        { name: 'Putih', hex: '#ffffff', action: () => changeLEDColor(targetLED, 'white', 'Putih') }
+                    ], "Ubah Warna LED");
+                }
+            });
+
+            function changeLEDColor(ledComponent, colorKey, colorName) {
+                const bulb = ledComponent.querySelector('.led-bulb');
+                bulb.className = bulb.className.replace(/led-color-\w+/g, ''); bulb.classList.add(`led-color-${colorKey}`);
+                const nameNode = ledComponent.querySelector('.led-color-name'); if (nameNode) nameNode.innerText = colorName;
+            }
+
+            // --- TEMPLATE KOMPONEN (HANYA JETSON NANO) ---
+            const componentTemplates = {
+                jetson: (uid) => {
+                    const pinsCol1 = [
+                        { name: '3v3', label: '3V3' }, { name: '2', label: 'G2 ' }, { name: '3', label: 'G3 ' }, { name: '4', label: 'G4 ' },
+                        { name: 'gnd', label: 'GND' }, { name: '17', label: 'G17' }, { name: '27', label: 'G27' }, { name: '22', label: 'G22' },
+                        { name: '3v3', label: '3V3' }, { name: '10', label: 'G10' }, { name: '9', label: 'G9 ' }, { name: '11', label: 'G11' },
+                        { name: 'gnd', label: 'GND' }, { name: '0', label: 'G0 ' }, { name: '5', label: 'G5 ' }, { name: '6', label: 'G6 ' },
+                        { name: '13', label: 'G13' }, { name: '19', label: 'G19' }, { name: '26', label: 'G26' }, { name: 'gnd', label: 'GND' }
+                    ];
+                    const pinsCol2 = [
+                        { name: '5v', label: '5V ' }, { name: '5v', label: '5V ' }, { name: 'gnd', label: 'GND' }, { name: '14', label: 'G14' },
+                        { name: '15', label: 'G15' }, { name: '18', label: 'G18' }, { name: 'gnd', label: 'GND' }, { name: '23', label: 'G23' },
+                        { name: '24', label: 'G24' }, { name: 'gnd', label: 'GND' }, { name: '25', label: 'G25' }, { name: '8', label: 'G8 ' },
+                        { name: '7', label: 'G7 ' }, { name: '1', label: 'G1 ' }, { name: 'gnd', label: 'GND' }, { name: '12', label: 'G12' },
+                        { name: 'gnd', label: 'GND' }, { name: '16', label: 'G16' }, { name: '20', label: 'G20' }, { name: '21', label: 'G21' }
+                    ];
+
+                    const getLabelClass = (name) => { if (name === '3v3' || name === '5v') return 'text-red-400'; if (name === 'gnd') return 'text-gray-400'; return 'text-green-400'; };
+
+                    let rowsHtml = '';
+                    for(let i = 0; i < 20; i++) {
+                        let p1 = pinsCol1[i]; let p2 = pinsCol2[i];
+                        rowsHtml += `
+                        <div class="jetson-pin-row">
+                            <span class="jetson-pin-label left ${getLabelClass(p1.name)}">${p1.label}</span>
+                            <div class="pin" data-pin-id="jn_${p1.name}_${i}_${uid}" data-pin-name="${p1.name}" data-board-pin="${i*2+1}" aria-label="Pin fisik ${i*2+1}: ${p1.label}"></div>
+                            <div class="pin" data-pin-id="jn_${p2.name}_${i}_${uid}" data-pin-name="${p2.name}" data-board-pin="${i*2+2}" aria-label="Pin fisik ${i*2+2}: ${p2.label}"></div>
+                            <span class="jetson-pin-label right ${getLabelClass(p2.name)}">${p2.label}</span>
+                        </div>`;
+                    }
+
+                    return `<div class="btn-delete-comp"><i class="fas fa-times"></i></div>
+                    <div class="component-header" style="background:#8b0000; border-bottom: 2px solid #5c0000;">
+                        <i class="fas fa-microchip text-red-400"></i> Jetson Nano 4 GB
+                    </div>
+                    <div class="component-body jetson-board" style="padding: 10px;">
+                        <div class="jetson-header-block">${rowsHtml}</div>
+                        <div class="jetson-details">
+                            <div class="jetson-chip"><i class="fas fa-microchip text-[#444] text-3xl"></i></div>
+                            <div class="jetson-logo-text">Jetson Nano</div>
+                        </div>
+                    </div>`;
+                },
+                led: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="far fa-lightbulb text-yellow-400"></i> LED <span class="led-color-name ml-1">Merah</span></div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="led-bulb led-visual led-color-red cursor-context-menu" id="led-vis-${uid}" title="Klik Kanan untuk ubah warna"></div><div class="flex justify-between w-full gap-4 mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">Anoda (+)</span><div class="pin" data-pin-id="led_anode_${uid}" data-pin-name="anode"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">Katoda (-)</span><div class="pin" data-pin-id="led_cathode_${uid}" data-pin-name="cathode"></div></div></div></div></div>`,
+                potensiometer: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-circle-notch text-green-400"></i> Potensiometer</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="pot-knob-container"><div class="pot-knob"><div class="pot-indicator"></div></div></div><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="pot_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">SIG</span><div class="pin" data-pin-id="pot_sig_${uid}" data-pin-name="sig"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="pot_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
+                button: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="far fa-dot-circle text-red-400"></i> Push Button</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="push-button ignore-drag" id="btn-vis-${uid}"></div><div class="flex justify-between w-full gap-8 mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label">Terminal 1</span><div class="pin" data-pin-id="btn_t1_${uid}" data-pin-name="t1"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label">Terminal 2</span><div class="pin" data-pin-id="btn_t2_${uid}" data-pin-name="t2"></div></div></div></div></div>`,
+                buzzer: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-bullhorn text-blue-400"></i> Buzzer</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="buzzer-body buzzer-visual" id="buzzer-vis-${uid}"></div><div class="flex justify-between w-full gap-4 mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">Positif (+)</span><div class="pin" data-pin-id="buzzer_pos_${uid}" data-pin-name="pos"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">Negatif (-)</span><div class="pin" data-pin-id="buzzer_neg_${uid}" data-pin-name="neg"></div></div></div></div></div>`,
+                dht22: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-temperature-high text-cyan-400"></i> DHT22</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="sensor-body dht-body"><div>Nilai Sensor</div><input type="range" class="slider-control ignore-drag" min="0" max="100" value="50"></div><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="dht_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">DAT</span><div class="pin" data-pin-id="dht_dat_${uid}" data-pin-name="dat"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="dht_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
+                ldr: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-sun text-yellow-400"></i> LDR Sensor</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="ldr-body"></div><input type="range" class="slider-control ignore-drag" min="0" max="1023" value="512"><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="ldr_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">SIG</span><div class="pin" data-pin-id="ldr_sig_${uid}" data-pin-name="sig"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="ldr_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
+                rgbled: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-lightbulb text-purple-400"></i> RGB LED</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="rgb-led-bulb rgb-visual" id="rgb-vis-${uid}"></div><div class="flex justify-center gap-2 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">R</span><div class="pin" data-pin-id="rgb_r_${uid}" data-pin-name="r"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="rgb_gnd_${uid}" data-pin-name="gnd"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-green-400">G</span><div class="pin" data-pin-id="rgb_g_${uid}" data-pin-name="g"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">B</span><div class="pin" data-pin-id="rgb_b_${uid}" data-pin-name="b"></div></div></div></div></div>`,
+                lcdi2c: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-desktop text-green-500"></i> LCD 16x2 I2C</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="lcd-board"><div class="lcd-screen" id="lcd-vis-${uid}"><div class="lcd-row" id="lcd-row-0-${uid}"></div><div class="lcd-row" id="lcd-row-1-${uid}"></div></div></div><div class="flex justify-center gap-4 w-full mt-3"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="lcd_gnd_${uid}" data-pin-name="gnd"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="lcd_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-300">SDA</span><div class="pin" data-pin-id="lcd_sda_${uid}" data-pin-name="sda"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-yellow-300">SCL</span><div class="pin" data-pin-id="lcd_scl_${uid}" data-pin-name="scl"></div></div></div></div></div>`,
+                oled: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-mobile-alt text-cyan-400"></i> SSD1306 OLED</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="oled-board"><div class="oled-screen" id="oled-vis-${uid}">SYSTEM INIT...<br>I2C ADDR 0x3C<br>WIFI CONNECTED</div></div><div class="flex justify-center gap-3 w-full mt-3"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="oled_gnd_${uid}" data-pin-name="gnd"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="oled_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-yellow-300">SCL</span><div class="pin" data-pin-id="oled_scl_${uid}" data-pin-name="scl"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-300">SDA</span><div class="pin" data-pin-id="oled_sda_${uid}" data-pin-name="sda"></div></div></div></div></div>`
+            };
+
+            window.spawnComponent = function(type, x, y, fixedUid = null, value = null, color = null) {
+                const uid = fixedUid || Date.now().toString() + Math.floor(Math.random() * 1000);
+                const el = document.createElement('div'); el.className = 'component';
+                el.setAttribute('data-type', type); el.setAttribute('data-uid', uid);
+                el.innerHTML = componentTemplates[type](uid);
+                el.style.left = `${x}px`; el.style.top = `${y}px`;
+                
+                if(value !== null) { el.setAttribute('data-value', value); const slider = el.querySelector('input[type="range"]'); if(slider) slider.value = value; }
+                if(color !== null && type === 'led') changeLEDColor(el, color, "Custom"); 
+                workspace.appendChild(el); return el;
+            };
+
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => e.dataTransfer.setData('type', item.dataset.type));
+                item.addEventListener('click', () => window.spawnComponent(item.dataset.type, 300, 200));
+            });
+            workspace.addEventListener('dragover', e => e.preventDefault());
+            workspace.addEventListener('drop', (e) => {
+                const type = e.dataTransfer.getData('type');
+                if (type) {
+                    let dropX = Math.round((e.clientX - workspace.getBoundingClientRect().left - 60) / 20) * 20;
+                    let dropY = Math.round((e.clientY - workspace.getBoundingClientRect().top - 20) / 20) * 20;
+                    window.spawnComponent(type, dropX, dropY);
+                }
+            });
+
+            workspace.addEventListener('input', (e) => { if(e.target.classList.contains('slider-control')) { e.target.closest('.component').setAttribute('data-value', e.target.value); if(state.isSimulating) evaluateCircuit(); } });
+
+            workspace.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.btn-delete-comp')) {
+                    const comp = e.target.closest('.component'); const pins = Array.from(comp.querySelectorAll('.pin'));
+                    state.wires = state.wires.filter(w => !pins.includes(w.pin1) && !pins.includes(w.pin2));
+                    comp.remove(); renderWires(); evaluateCircuit(); return;
+                }
+                if (e.target.closest('.push-button')) { e.target.closest('.push-button').classList.add('pressed'); if(state.isSimulating) evaluateCircuit(); }
+                if (e.target.closest('.pot-knob-container')) { state.isDraggingPot = true; state.activePotKnob = e.target.closest('.pot-knob'); return; }
+                if (e.target.closest('.pin') || e.target.closest('.ignore-drag') || e.target.tagName === 'INPUT') return;
+                
+                const comp = e.target.closest('.component');
+                if (comp) {
+                    state.activeComponent = comp; state.offsetX = e.clientX - comp.getBoundingClientRect().left; state.offsetY = e.clientY - comp.getBoundingClientRect().top;
+                    document.querySelectorAll('.component').forEach(c => c.style.zIndex = '20'); comp.style.zIndex = '30';
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (state.isResizingEditor) {
+                    let newWidth = window.innerWidth - e.clientX; if (newWidth < 250) newWidth = 250; if (newWidth > window.innerWidth - 300) newWidth = window.innerWidth - 300; 
+                    editorPanel.style.width = `${newWidth}px`; renderWires(); return; 
+                }
+                if (state.activeComponent) {
+                    const wsRect = workspace.getBoundingClientRect();
+                    let newX = Math.round((e.clientX - wsRect.left - state.offsetX) / 20) * 20;
+                    let newY = Math.round((e.clientY - wsRect.top - state.offsetY) / 20) * 20;
+                    state.activeComponent.style.left = `${newX}px`; state.activeComponent.style.top = `${newY}px`; renderWires();
+                }
+                if (state.isDraggingPot && state.activePotKnob) {
+                    const rect = state.activePotKnob.parentElement.getBoundingClientRect();
+                    let angle = Math.atan2(e.clientY - (rect.top + rect.height / 2), e.clientX - (rect.left + rect.width / 2)) * (180 / Math.PI) + 90;
+                    if(angle > 180) angle -= 360; if (angle < -135) angle = -135; if (angle > 135) angle = 135;
+                    state.activePotKnob.style.transform = `rotate(${angle}deg)`;
+                    state.activePotKnob.closest('.component').setAttribute('data-value', Math.round(((angle + 135) / 270) * 4095));
+                    if(state.isSimulating) evaluateCircuit();
+                }
+                if (state.isDraggingWire && state.activeWire) {
+                    const wsRect = workspace.getBoundingClientRect();
+                    let newX = Math.round((e.clientX - wsRect.left) / 20) * 20; let newY = Math.round((e.clientY - wsRect.top) / 20) * 20;
+                    if (state.activeWireHandle === 'x') state.activeWire.fixedMidX = newX;
+                    else if (state.activeWireHandle === 'y1') state.activeWire.fixedMidY1 = newY;
+                    else if (state.activeWireHandle === 'y2') state.activeWire.fixedMidY2 = newY;
+                    renderWires();
+                }
+            });
+
+            document.addEventListener('mouseup', () => { 
+                if (state.isResizingEditor) { state.isResizingEditor = false; document.body.style.cursor = 'default'; }
+                state.activeComponent = null; state.isDraggingPot = false; state.activePotKnob = null; 
+                if (state.isDraggingWire) { state.isDraggingWire = false; state.activeWire = null; state.activeWireHandle = null; }
+                if(document.querySelector('.push-button.pressed')) { document.querySelectorAll('.push-button.pressed').forEach(b => b.classList.remove('pressed')); if(state.isSimulating) evaluateCircuit(); }
+            });
+
+            workspace.addEventListener('click', (e) => {
+                const pin = e.target.closest('.pin');
+                if (!pin) { if (state.selectedPin && !e.target.closest('.component')) { state.selectedPin.classList.remove('selected'); state.selectedPin = null; } return; }
+                if (!state.selectedPin) { state.selectedPin = pin; pin.classList.add('selected'); return; }
+                if (state.selectedPin === pin) { pin.classList.remove('selected'); state.selectedPin = null; return; }
+                if (state.selectedPin.closest('.component') === pin.closest('.component')) { state.selectedPin.classList.remove('selected'); state.selectedPin = null; return; }
+
+                const connected = state.wires.find(w => (w.pin1 === state.selectedPin && w.pin2 === pin) || (w.pin1 === pin && w.pin2 === state.selectedPin));
+                if (connected) { state.selectedPin.classList.remove('selected'); state.selectedPin = null; return; }
+
+                const name = state.selectedPin.dataset.pinName;
+                const color = (name === '3v3' || name === '5v' || name === 'vin') ? '#ef4444' : (name === 'gnd' || name === 'cathode') ? '#64748b' : '#3b82f6';
+                
+                state.wires.push({ pin1: state.selectedPin, pin2: pin, color });
+                state.selectedPin.classList.remove('selected'); state.selectedPin = null; renderWires(); evaluateCircuit();
+            });
+
+            function renderWires() {
+                wiresLayer.innerHTML = ''; const wsRect = workspace.getBoundingClientRect();
+                state.wires.forEach(wire => {
+                    if(!document.body.contains(wire.pin1) || !document.body.contains(wire.pin2)) return;
+                    const r1 = wire.pin1.getBoundingClientRect(), r2 = wire.pin2.getBoundingClientRect();
+                    const x1 = (r1.left + r1.width/2) - wsRect.left, y1 = (r1.top + r1.height/2) - wsRect.top;
+                    const x2 = (r2.left + r2.width/2) - wsRect.left, y2 = (r2.top + r2.height/2) - wsRect.top;
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const midX = (wire.fixedMidX !== undefined && wire.fixedMidX !== null) ? wire.fixedMidX : x1 + (x2 - x1) / 2;
+                    const midY1 = (wire.fixedMidY1 !== undefined && wire.fixedMidY1 !== null) ? wire.fixedMidY1 : y1;
+                    const midY2 = (wire.fixedMidY2 !== undefined && wire.fixedMidY2 !== null) ? wire.fixedMidY2 : y2;
+
+                    path.setAttribute('d', `M ${x1} ${y1} L ${x1} ${midY1} L ${midX} ${midY1} L ${midX} ${midY2} L ${x2} ${midY2} L ${x2} ${y2}`);
+                    path.setAttribute('stroke', wire.color); path.setAttribute('stroke-width', '4'); path.setAttribute('fill', 'none'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+                    path.style.cursor = "pointer"; path.style.pointerEvents = "stroke";
+                    path.addEventListener('click', (e) => { e.stopPropagation(); state.wires = state.wires.filter(w => w !== wire); renderWires(); evaluateCircuit(); });
+                    
+                    path.addEventListener('contextmenu', (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        showContextMenu(e.clientX, e.clientY, [
+                            { name: 'Reset Rute', hex: '#ffffff', action: () => { delete wire.fixedMidX; delete wire.fixedMidY1; delete wire.fixedMidY2; renderWires(); } },
+                            { name: 'Merah (VCC)', hex: '#ef4444', action: () => { wire.color = '#ef4444'; renderWires(); } },
+                            { name: 'Hitam (GND)', hex: '#64748b', action: () => { wire.color = '#64748b'; renderWires(); } },
+                            { name: 'Biru (Data)', hex: '#3b82f6', action: () => { wire.color = '#3b82f6'; renderWires(); } },
+                            { name: 'Hijau', hex: '#22c55e', action: () => { wire.color = '#22c55e'; renderWires(); } },
+                            { name: 'Kuning', hex: '#eab308', action: () => { wire.color = '#eab308'; renderWires(); } }
+                        ], "Opsi Kabel");
+                    });
+                    wiresLayer.appendChild(path);
+
+                    const createHandle = (cx, cy, cursor, dragType) => {
+                        const h = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        h.setAttribute('cx', cx); h.setAttribute('cy', cy); h.setAttribute('r', '6'); h.setAttribute('fill', '#1e1e2f'); h.setAttribute('stroke', wire.color); h.setAttribute('stroke-width', '2');
+                        h.style.cursor = cursor; h.style.pointerEvents = "all"; h.style.opacity = "0.5"; h.style.transition = "r 0.2s, opacity 0.2s";
+                        h.addEventListener('mouseenter', () => { h.style.opacity = "1"; h.setAttribute('r', '8'); });
+                        h.addEventListener('mouseleave', () => { h.style.opacity = "0.5"; h.setAttribute('r', '6'); });
+                        h.addEventListener('mousedown', (e) => { e.stopPropagation(); state.isDraggingWire = true; state.activeWire = wire; state.activeWireHandle = dragType; });
+                        return h;
+                    };
+                    wiresLayer.appendChild(createHandle(x1 + (midX - x1)/2, midY1, "row-resize", "y1"));
+                    wiresLayer.appendChild(createHandle(midX, midY1 + (midY2 - midY1)/2, "col-resize", "x"));
+                    wiresLayer.appendChild(createHandle(midX + (x2 - midX)/2, midY2, "row-resize", "y2"));
+                });
+            }
+            btnClear.addEventListener('click', () => { if(confirm("Hapus semua koneksi?")) { state.wires = []; renderWires(); evaluateCircuit(); }});
+
+            // --- ENGINE SIMULATOR ---
+            let gpioNumbering = 'BCM';
+            const boardToBCM = {3:2,5:3,7:4,8:14,10:15,11:17,12:18,13:27,15:22,16:23,18:24,19:10,21:9,22:25,23:11,24:8,26:7,27:0,28:1,29:5,31:6,32:12,33:13,35:19,36:16,37:26,38:20,40:21};
+            const normalizeGPIO = pin => {
+                const mapped = gpioNumbering === 'BOARD' ? boardToBCM[pin] : Number(pin);
+                if (!Number.isInteger(mapped) || !Object.values(boardToBCM).includes(mapped)) throw Error('Nomor GPIO tidak didukung: ' + pin);
+                return mapped;
+            };
+            window.sys_setmode = function(mode) {
+                if (!['BCM', 'BOARD'].includes(mode)) throw Error('Gunakan GPIO.BCM atau GPIO.BOARD');
+                gpioNumbering = mode;
+            };
+            window.sys_pinMode = function(pin, mode) { normalizeGPIO(pin); };
+            window.sys_digitalWrite = function(pin, val) { if (!state.isSimulating) return; state.hw.pins[normalizeGPIO(pin).toString()] = Number(val); evaluateCircuit(); };
+            window.sys_analogRead = function(pin) { return state.hw.analog[pin.toString()] || 0; }; 
+            window.sys_digitalRead = function(pin) { pin = normalizeGPIO(pin); return state.hw.digitalInput[pin.toString()] || state.hw.pins[pin.toString()] || 0; };
+            
+            window.sys_serial_print = function(val) {
+                if (val === undefined || val === null) val = "";
+                if (consoleOutput.lastElementChild && consoleOutput.lastElementChild.classList.contains('print-line')) { consoleOutput.lastElementChild.innerText += val; } 
+                else { const div = document.createElement('div'); div.className = 'text-gray-300 print-line'; div.innerText = `> ${val}`; consoleOutput.appendChild(div); }
+                trimConsole();
+            };
+            window.sys_serial_println = function(val) { 
+                if (val === undefined || val === null) val = "";
+                if (consoleOutput.lastElementChild && consoleOutput.lastElementChild.classList.contains('print-line')) { consoleOutput.lastElementChild.innerText += val; consoleOutput.lastElementChild.classList.remove('print-line'); } 
+                else { logToConsole(val, 'text-gray-300'); }
+            };
+
+            // WebSocket Client
+            let iotSocket; window.sys_blynk_virtual_pins = {};
+            window.initSimulatorWebSocket = function() {
+                if(iotSocket) iotSocket.close();
+                logToConsole(`Mencoba terhubung ke ${wsUrl}...`, 'text-blue-400');
+                try {
+                    iotSocket = new window.IoTSocket();
+                    iotSocket.onopen = () => {
+                        logToConsole('Terhubung ke Server WS.', 'text-green-400');
+                        clearInterval(window.iotHeartbeat); window.iotHeartbeat = setInterval(() => { if(state.isSimulating && iotSocket.readyState === window.IoTSocket.OPEN) iotSocket.send(JSON.stringify({ type: 'PING' })); }, 2000);
+                    };
+                    iotSocket.onmessage = (event) => {
+                        if (!state.isSimulating) return;
+                        try {
+                            const data = JSON.parse(event.data);
+                            if(data.type === 'WRITE') {
+                                window.sys_blynk_virtual_pins[data.pin] = data.value;
+                                const funcName = `ITENAS_WRITE_${data.pin}`; if(typeof window[funcName] === 'function') window[funcName](data.value);
+                            }
+                        } catch(e) {}
+                    };
+                    iotSocket.onclose = () => logToConsole('Koneksi terputus. Menunggu reconnect...', 'text-red-400');
+                    iotSocket.onerror = () => logToConsole('Gagal terhubung ke WebSocket.', 'text-red-500');
+                } catch (e) { logToConsole(`Error WebSocket: ${e.message}`, 'text-red-500'); }
+            };
+
+            window.sys_blynk_virtualWrite = function(pinStr, val) { if (iotSocket && iotSocket.readyState === window.IoTSocket.OPEN) { iotSocket.send(JSON.stringify({ type: 'WRITE', pin: pinStr, value: val })); } };
+            
+            // Komponen Tambahan
+            window.sys_lcd_cursor_row = 0; window.sys_lcd_cursor_col = 0;
+            window.sys_lcd_setCursor = function(col, row) { window.sys_lcd_cursor_col = col; window.sys_lcd_cursor_row = row; };
+            window.sys_lcd_print = function(text) {
+                let cleanText = text !== undefined && text !== null ? text.toString().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1') : "";
+                document.querySelectorAll('.component[data-type="lcdi2c"]').forEach(comp => {
+                    const uid = comp.getAttribute('data-uid'); const screen = document.getElementById(`lcd-vis-${uid}`);
+                    if(screen.classList.contains('on')) { const rowEl = document.getElementById(`lcd-row-${window.sys_lcd_cursor_row}-${uid}`); if(rowEl) { let prefix = " ".repeat(Math.max(0, window.sys_lcd_cursor_col)); rowEl.innerText = prefix + cleanText; } }
+                });
+            };
+            window.sys_lcd_clear = function() {
+                document.querySelectorAll('.component[data-type="lcdi2c"]').forEach(comp => {
+                    const uid = comp.getAttribute('data-uid');
+                    if(document.getElementById(`lcd-row-0-${uid}`)) document.getElementById(`lcd-row-0-${uid}`).innerText = "";
+                    if(document.getElementById(`lcd-row-1-${uid}`)) document.getElementById(`lcd-row-1-${uid}`).innerText = "";
+                });
+            };
+            
+            window.sys_delay = function(ms) {
+                const version = state.runVersion;
+                return new Promise((resolve, reject) => {
+                    let timer;
+                    const interval = setInterval(() => {
+                        if (!state.isSimulating || version !== state.runVersion) {
+                            clearInterval(interval); clearTimeout(timer);
+                            reject(new Error('Simulasi dihentikan.'));
+                        }
+                    }, 10);
+                    timer = setTimeout(() => { clearInterval(interval); resolve(); }, ms);
+                });
+            };
+
+            // TRANSLATOR PYTHON
+            function transpilePythonToJS(pyCode) {
+                let lines = pyCode.split('\n');
+                let jsLines = []; let indentStack = [0];
+                
+                for(let i=0; i<lines.length; i++) {
+                    let line = lines[i];
+                    if (line.trim() === '' || line.trim().startsWith('#')) continue;
+                    
+                    line = line.replace(/\t/g, '    ');
+                    let currentIndent = line.search(/\S/);
+                    
+                    while (currentIndent < indentStack[indentStack.length - 1]) { jsLines.push('}'); indentStack.pop(); }
+                    if (currentIndent > indentStack[indentStack.length - 1]) { indentStack.push(currentIndent); }
+                    
+                    let jsLine = line.trim();
+                    jsLine = jsLine.replace(/\s+#.*$/, '');
+                    jsLine = jsLine.replace(/ITENAS\.virtualWrite\(\s*['"]?(V\d+)['"]?\s*,\s*(.*?)\)/g, 'window.sys_blynk_virtualWrite("$1", $2)');
+                    jsLine = jsLine.replace(/time\.sleep\((.*?)\)/g, 'await window.sys_delay($1 * 1000)');
+                    jsLine = jsLine.replace(/GPIO\.output\((.*?),\s*GPIO\.HIGH\)/g, 'window.sys_digitalWrite($1, 1)');
+                    jsLine = jsLine.replace(/GPIO\.output\((.*?),\s*GPIO\.LOW\)/g, 'window.sys_digitalWrite($1, 0)');
+                    jsLine = jsLine.replace(/GPIO\.output\((.*?),\s*(.*?)\)/g, 'window.sys_digitalWrite($1, $2)');
+                    jsLine = jsLine.replace(/GPIO\.input\((.*?)\)/g, 'window.sys_digitalRead($1)');
+                    jsLine = jsLine.replace(/print\((.*?)\)/g, 'window.sys_serial_println($1)');
+                    jsLine = jsLine.replace(/\bTrue\b/g, 'true').replace(/\bFalse\b/g, 'false');
+                    jsLine = jsLine.replace(/\bGPIO\.HIGH\b/g, '1').replace(/\bGPIO\.LOW\b/g, '0');
+                    jsLine = jsLine.replace(/^import\s+.*/g, '').replace(/^from\s+.*?import\s+.*/g, '');
+                    jsLine = jsLine.replace(/GPIO\.setmode\(GPIO\.(BCM|BOARD)\)/g, 'window.sys_setmode("$1")').replace(/GPIO\.setwarnings\(.*\)/g, '');
+                    jsLine = jsLine.replace(/GPIO\.setup\((.*?),\s*GPIO\.OUT\)/g, 'window.sys_pinMode($1, 1)').replace(/GPIO\.setup\((.*?),\s*GPIO\.IN\)/g, 'window.sys_pinMode($1, 0)');
+                    
+                    if (jsLine.endsWith(':')) {
+                        jsLine = jsLine.slice(0, -1);
+                        if (jsLine.startsWith('if ')) jsLine = `if (${jsLine.slice(3)}) {`;
+                        else if (jsLine.startsWith('elif ')) jsLine = `else if (${jsLine.slice(5)}) {`;
+                        else if (jsLine.startsWith('while ')) {
+                            let cond = jsLine.slice(6).trim();
+                            // INJEKSI DELAY ANTI-FREEZE & PERBAIKAN SCOPE
+                            if (cond === 'True' || cond === 'true') jsLine = `while (window.iotEngine.getState().isSimulating) { await window.sys_delay(1);`;
+                            else jsLine = `while (${cond}) { await window.sys_delay(1);`;
+                        }
+                        else if (jsLine === 'else') jsLine = `else {`;
+                        else if (jsLine.startsWith('def ')) { let m = jsLine.match(/^def\s+(.*?)\((.*?)\)$/); if (m) jsLine = /^ITENAS_WRITE_V\d+$/.test(m[1]) ? `window.${m[1]} = async function(${m[2]}) {` : `async function ${m[1]}(${m[2]}) {`; else jsLine += ' {'; }
+                        else if (jsLine.startsWith('for ')) { let m = jsLine.match(/^for\s+(.*?)\s+in\s+range\((.*?)\)$/); if (m) jsLine = `for(let ${m[1]}=0; ${m[1]}<${m[2]}; ${m[1]}++) {`; else jsLine += ' {'; }
+                        else jsLine += ' {';
+                    } else if (!jsLine.endsWith('{') && !jsLine.endsWith('}')) {
+                        if (!jsLine.endsWith(';')) jsLine += ';';
+                    }
+                    jsLines.push(jsLine);
+                }
+                while (indentStack.length > 1) { jsLines.push('}'); indentStack.pop(); }
+                return jsLines.join('\n');
+            }
+
+            async function runSimulation() {
+                const version = state.runVersion;
+                try {
+                    state.hw.pins = {}; gpioNumbering = 'BCM'; evaluateCircuit();
+                    if(window.sys_lcd_clear) window.sys_lcd_clear();
+
+                    const jsCode = transpilePythonToJS(codeEditor.value);
+                    const runner = new Function(` return async function() { ${jsCode} }; `)();
+                    
+                    logToConsole('Menjalankan skrip Python...', 'text-yellow-400');
+                    await runner();
+                    if (version !== state.runVersion) return;
+                    if (state.isSimulating) { logToConsole('Skrip Python selesai.', 'text-green-400'); stopSimulation(); }
+                } catch (error) {
+                    if (version !== state.runVersion) return;
+                    console.error(error);
+                    logToConsole(`Error Kompilasi: ${error.message}`, 'text-red-500');
+                    stopSimulation();
+                }
+            }
+
+            function stopSimulation() {
+                state.runVersion++;
+                state.isSimulating = false;
+                btnRun.innerHTML = '<i class="fas fa-play"></i> Mulai Simulasi';
+                btnRun.classList.replace('bg-yellow-600', 'bg-green-600'); btnRun.classList.replace('hover:bg-yellow-700', 'hover:bg-green-700');
+                document.querySelectorAll('.led-visual').forEach(led => led.classList.remove('on'));
+                document.querySelectorAll('.buzzer-visual').forEach(b => b.classList.remove('on'));
+                document.querySelectorAll('.rgb-visual').forEach(rgb => { rgb.style.backgroundColor = '#fff'; rgb.style.boxShadow = 'inset -5px -5px 10px rgba(0,0,0,0.2)'; });
+                document.querySelectorAll('.lcd-screen').forEach(scr => scr.classList.remove('on'));
+                document.querySelectorAll('.oled-screen').forEach(scr => scr.classList.remove('on'));
+                if(window.sys_lcd_clear) window.sys_lcd_clear(); 
+                logToConsole('Simulasi dihentikan.', 'text-red-400');
+            }
+
+            btnRun.addEventListener('click', () => {
+                if (!state.isSimulating) {
+                    state.runVersion++; state.isSimulating = true; btnRun.innerHTML = '<i class="fas fa-stop"></i> Hentikan Simulasi';
+                    btnRun.classList.replace('bg-green-600', 'bg-yellow-600'); btnRun.classList.replace('hover:bg-green-700', 'hover:bg-yellow-700');
+                    logToConsole('Memulai Engine Python...', 'text-red-400'); runSimulation(); 
+                } else { stopSimulation(); }
+            });
+
+            // EVALUATOR
+            function evaluateCircuit() {
+                document.querySelectorAll('.component[data-type="esp32"] .pin, .component[data-type="jetson"] .pin').forEach(pin => {
+                    const value = state.hw.pins[pin.dataset.pinName];
+                    pin.dataset.level = value === 1 ? 'high' : value === 0 ? 'low' : 'floating';
+                    pin.title = `Pin fisik ${pin.dataset.boardPin}, BCM ${pin.dataset.pinName}: ${value === undefined ? 'belum diatur' : value}`;
+                });
+                state.hw.pins['3v3'] = 1; state.hw.pins['5v'] = 1; state.hw.pins['vin'] = 1; state.hw.pins['gnd'] = 0;
+                state.hw.analog = {}; state.hw.digitalInput = {};
+
+                document.querySelectorAll('.component[data-type="potensiometer"]').forEach(comp => {
+                    let val = comp.hasAttribute('data-value') ? parseInt(comp.getAttribute('data-value')) : 2048;
+                    const sigPinId = `pot_sig_${comp.getAttribute('data-uid')}`;
+                    state.wires.forEach(w => {
+                        let espPin = null;
+                        if(w.pin1.getAttribute('data-pin-id') === sigPinId) espPin = w.pin2.getAttribute('data-pin-name');
+                        if(w.pin2.getAttribute('data-pin-id') === sigPinId) espPin = w.pin1.getAttribute('data-pin-name');
+                        if(espPin) state.hw.analog[espPin] = val;
+                    });
+                });
+
+                document.querySelectorAll('.component[data-type="ldr"]').forEach(comp => {
+                    const slider = comp.querySelector('input'); let val = parseInt(slider.value) * 4; 
+                    const sigPinId = `ldr_sig_${comp.getAttribute('data-uid')}`;
+                    state.wires.forEach(w => {
+                        let espPin = null;
+                        if(w.pin1.getAttribute('data-pin-id') === sigPinId) espPin = w.pin2.getAttribute('data-pin-name');
+                        if(w.pin2.getAttribute('data-pin-id') === sigPinId) espPin = w.pin1.getAttribute('data-pin-name');
+                        if(espPin) state.hw.analog[espPin] = val;
+                    });
+                });
+
+                document.querySelectorAll('.component[data-type="button"]').forEach(comp => {
+                    const isPressed = comp.querySelector('.push-button').classList.contains('pressed') ? 1 : 0;
+                    const t2PinId = `btn_t2_${comp.getAttribute('data-uid')}`; 
+                    state.wires.forEach(w => {
+                        let espPin = null;
+                        if(w.pin1.getAttribute('data-pin-id') === t2PinId) espPin = w.pin2.getAttribute('data-pin-name');
+                        if(w.pin2.getAttribute('data-pin-id') === t2PinId) espPin = w.pin1.getAttribute('data-pin-name');
+                        if(espPin) state.hw.digitalInput[espPin] = isPressed;
+                    });
+                });
+
+                document.querySelectorAll('.component[data-type="led"]').forEach(ledComp => {
+                    const uid = ledComp.getAttribute('data-uid'); const ledVisual = document.getElementById(`led-vis-${uid}`);
+                    const anodePinId = `led_anode_${uid}`; const cathodePinId = `led_cathode_${uid}`;
+                    let isAnodePowered = false; let isCathodeGrounded = false;
+                    state.wires.forEach(wire => {
+                        const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
+                        if (id1 === anodePinId || id2 === anodePinId) { const otherPin = id1 === anodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 1) isAnodePowered = true; }
+                        if (id1 === cathodePinId || id2 === cathodePinId) { const otherPin = id1 === cathodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 0) isCathodeGrounded = true; }
+                    });
+                    if (isAnodePowered && isCathodeGrounded) { ledVisual.classList.add('on'); } else { ledVisual.classList.remove('on'); }
+                });
+
+                document.querySelectorAll('.component[data-type="buzzer"]').forEach(buzzerComp => {
+                    const uid = buzzerComp.getAttribute('data-uid'); const buzzerVisual = document.getElementById(`buzzer-vis-${uid}`);
+                    const posPinId = `buzzer_pos_${uid}`; const negPinId = `buzzer_neg_${uid}`;
+                    let isPosPowered = false; let isNegGrounded = false;
+                    state.wires.forEach(wire => {
+                        const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
+                        if (id1 === posPinId || id2 === posPinId) { const otherPin = id1 === posPinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 1) isPosPowered = true; }
+                        if (id1 === negPinId || id2 === negPinId) { const otherPin = id1 === negPinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 0) isNegGrounded = true; }
+                    });
+                    if (isPosPowered && isNegGrounded) { buzzerVisual.classList.add('on'); } else { buzzerVisual.classList.remove('on'); }
+                });
+
+                document.querySelectorAll('.component[data-type="rgbled"]').forEach(rgbComp => {
+                    const uid = rgbComp.getAttribute('data-uid'); const rgbVisual = document.getElementById(`rgb-vis-${uid}`);
+                    let rOn = false, gOn = false, bOn = false, isGrounded = false;
+                    state.wires.forEach(wire => {
+                        const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
+                        const checkPin = (pinStr, checkVal) => { if (id1.includes(pinStr) || id2.includes(pinStr)) { const otherPin = id1.includes(pinStr) ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === checkVal) return true; } return false; };
+                        if (checkPin(`rgb_gnd_${uid}`, 0)) isGrounded = true;
+                        if (checkPin(`rgb_r_${uid}`, 1)) rOn = true; if (checkPin(`rgb_g_${uid}`, 1)) gOn = true; if (checkPin(`rgb_b_${uid}`, 1)) bOn = true;
+                    });
+                    if (isGrounded && (rOn || gOn || bOn)) {
+                        let rCol = rOn ? 255 : 0; let gCol = gOn ? 255 : 0; let bCol = bOn ? 255 : 0;
+                        rgbVisual.style.backgroundColor = `rgb(${rCol}, ${gCol}, ${bCol})`; rgbVisual.style.boxShadow = `0 0 20px rgb(${rCol}, ${gCol}, ${bCol}), inset -5px -5px 10px rgba(0,0,0,0.2)`;
+                    } else { rgbVisual.style.backgroundColor = '#ffffff'; rgbVisual.style.boxShadow = 'inset -5px -5px 10px rgba(0,0,0,0.2)'; }
+                });
+
+                const displayTypes = ['lcdi2c', 'oled'];
+                displayTypes.forEach(type => {
+                    document.querySelectorAll(`.component[data-type="${type}"]`).forEach(comp => {
+                        const uid = comp.getAttribute('data-uid'); const screen = document.getElementById(type === 'lcdi2c' ? `lcd-vis-${uid}` : `oled-vis-${uid}`);
+                        let hasVCC = false, hasGND = false;
+                        state.wires.forEach(wire => {
+                            const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
+                            const checkPin = (pinStr, checkVal) => {
+                                if (id1 === pinStr || id2 === pinStr) {
+                                    const otherPin = id1 === pinStr ? wire.pin2 : wire.pin1; const pinName = otherPin.getAttribute('data-pin-name');
+                                    if(checkVal === 1 && state.hw.pins[pinName] === 1) return true; if(checkVal === 0 && state.hw.pins[pinName] === 0) return true;
+                                }
+                                return false;
+                            };
+                            const prefix = type === 'lcdi2c' ? 'lcd' : 'oled';
+                            if (checkPin(`${prefix}_vcc_${uid}`, 1)) hasVCC = true; if (checkPin(`${prefix}_gnd_${uid}`, 0)) hasGND = true;
+                        });
+                        if (hasVCC && hasGND) { screen.classList.add('on'); } 
+                        else { screen.classList.remove('on'); if (type === 'lcdi2c') { document.getElementById(`lcd-row-0-${uid}`).innerText = ''; document.getElementById(`lcd-row-1-${uid}`).innerText = ''; } }
+                    });
+                });
+            }
+
+            window.addEventListener('resize', renderWires);
+        });
+    </script>
+</body>
+</html>

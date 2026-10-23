@@ -115,7 +115,9 @@
           window.location.replace(`/login.html?redirect=${encodeURIComponent(location.pathname)}`);
           return;
         }
-        throw Error(body.error || 'Gagal memuat halaman.');
+        throw Error(body.error || (response.status === 404
+          ? 'Halaman belum tersedia di server. Muat ulang server lokal lalu coba kembali.'
+          : `Gagal memuat halaman (HTTP ${response.status}). Coba muat ulang halaman.`));
       }
 
       const html = await response.text();
