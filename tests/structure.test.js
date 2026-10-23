@@ -44,7 +44,7 @@ test('API verifies token and membership before returning protected HTML',async()
 });
 
 test('registration UI elements and bridge database sync are present', async () => {
-  const shell = fs.readFileSync('public/index.html', 'utf8');
+  const shell = fs.readFileSync('public/login.html', 'utf8');
   assert.ok(shell.includes('id="tab-register"'));
   assert.ok(shell.includes('id="tab-login"'));
 

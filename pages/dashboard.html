@@ -164,7 +164,7 @@
         input:checked + .slider-toggle:before { transform: translateX(30px); }
 
         .range-slider { 
-            -webkit-appearance: none; width: 100%; height: 8px; border-radius: 6px; 
+            -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 6px; 
             background: #334155; outline: none; margin: 15px 0; 
         }
         .range-slider::-webkit-slider-thumb { 
@@ -283,7 +283,19 @@
             </a>
         </div>
         
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
+            <!-- Add Widget Direct Menu Button -->
+            <button onclick="openAddWidgetModal()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-900/30 hover:scale-105 active:scale-95 border border-emerald-400/30">
+                <i class="fas fa-plus-circle text-emerald-200 text-sm"></i>
+                <span>+ Tambah Widget</span>
+            </button>
+
+            <!-- Toggle Palette Sidebar -->
+            <button onclick="toggleWidgetPalette()" id="btn-toggle-palette" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-800/60 hover:bg-gray-700/80 border border-gray-700/60 text-gray-200 text-xs font-semibold transition" title="Tampilkan/Sembunyikan Palet Samping">
+                <i class="fas fa-cubes text-emerald-400"></i>
+                <span id="text-toggle-palette">Palet Samping</span>
+            </button>
+
             <!-- Prototype Mode Button -->
             <button onclick="openPrototypeModal()" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/90 to-indigo-600/90 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 border border-purple-400/30">
                 <i class="fas fa-mobile-screen-button text-xs text-purple-200"></i>
@@ -379,6 +391,15 @@
                         <div class="text-[11px] text-gray-400">Pesan Teks / String</div>
                     </div>
                 </button>
+                <button onclick="addWidget('button')" class="group flex items-center gap-3.5 bg-[#141e33] p-3.5 rounded-xl border border-[#23324d] hover:border-emerald-500/60 hover:bg-[#1b2845] transition-all text-left shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fas fa-fingerprint text-emerald-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-emerald-400 transition">Push Button</div>
+                        <div class="text-[11px] text-gray-400">Tombol Tekan / Trigger (Pulse)</div>
+                    </div>
+                </button>
             </div>
             <div class="p-4 border-t border-[#1e293b] bg-[#090e1a]">
                 <button onclick="clearAllWidgets()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 py-2.5 rounded-xl border border-red-800/50 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2">
@@ -402,6 +423,108 @@
         </div>
     </div>
 
+    <!-- Modal Tambah Widget Baru -->
+    <div id="modal-add-widget" class="modal-overlay" style="display: none;">
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 w-[540px] max-w-[94vw] shadow-2xl relative max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-plus-circle text-emerald-400"></i> Tambah Widget Baru ke Dashboard
+                </h3>
+                <button onclick="closeAddWidgetModal()" class="text-gray-400 hover:text-white text-lg"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 pr-1 custom-scrollbar">
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">1. Pilih Tipe Widget</label>
+                <div class="grid grid-cols-2 gap-2.5 mb-4" id="add-widget-type-selector">
+                    <div onclick="selectAddWidgetType('switch')" id="type-opt-switch" class="widget-type-card cursor-pointer p-3 rounded-xl border border-emerald-500 bg-emerald-500/10 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-power-off"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Toggle Switch</div>
+                            <div class="text-[10px] text-gray-400">Saklar ON / OFF</div>
+                        </div>
+                    </div>
+
+                    <div onclick="selectAddWidgetType('slider')" id="type-opt-slider" class="widget-type-card cursor-pointer p-3 rounded-xl border border-gray-800 bg-[#141e33] hover:border-gray-700 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Slider (PWM)</div>
+                            <div class="text-[10px] text-gray-400">Analog 0 - 255</div>
+                        </div>
+                    </div>
+
+                    <div onclick="selectAddWidgetType('value')" id="type-opt-value" class="widget-type-card cursor-pointer p-3 rounded-xl border border-gray-800 bg-[#141e33] hover:border-gray-700 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Value Display</div>
+                            <div class="text-[10px] text-gray-400">Angka Telemetri</div>
+                        </div>
+                    </div>
+
+                    <div onclick="selectAddWidgetType('gauge')" id="type-opt-gauge" class="widget-type-card cursor-pointer p-3 rounded-xl border border-gray-800 bg-[#141e33] hover:border-gray-700 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Gauge Meter</div>
+                            <div class="text-[10px] text-gray-400">Radial 0 - 100%</div>
+                        </div>
+                    </div>
+
+                    <div onclick="selectAddWidgetType('text')" id="type-opt-text" class="widget-type-card cursor-pointer p-3 rounded-xl border border-gray-800 bg-[#141e33] hover:border-gray-700 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-font"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Status Text</div>
+                            <div class="text-[10px] text-gray-400">String / Pesan</div>
+                        </div>
+                    </div>
+
+                    <div onclick="selectAddWidgetType('button')" id="type-opt-button" class="widget-type-card cursor-pointer p-3 rounded-xl border border-gray-800 bg-[#141e33] hover:border-gray-700 flex items-center gap-3 transition">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                            <i class="fas fa-fingerprint"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white">Push Button</div>
+                            <div class="text-[10px] text-gray-400">Tombol Trigger</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-wider">2. Judul Widget</label>
+                        <input type="text" id="new-widget-title" value="Relay 1" placeholder="Contoh: Lampu Teras" class="w-full bg-[#070a12] border border-[#334155] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 text-sm transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1.5 tracking-wider">3. Virtual Pin</label>
+                        <select id="new-widget-pin" class="w-full bg-[#070a12] border border-[#334155] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono text-sm transition">
+                            <option value="V0">V0</option><option value="V1">V1</option><option value="V2">V2</option><option value="V3">V3</option>
+                            <option value="V4">V4</option><option value="V5">V5</option><option value="V6">V6</option><option value="V7">V7</option>
+                            <option value="V8">V8</option><option value="V9">V9</option><option value="V10">V10</option><option value="V11">V11</option>
+                            <option value="V12">V12</option><option value="V13">V13</option><option value="V14">V14</option><option value="V15">V15</option>
+                            <option value="V16">V16</option><option value="V17">V17</option><option value="V18">V18</option><option value="V19">V19</option>
+                            <option value="V20">V20</option><option value="V21">V21</option><option value="V22">V22</option><option value="V23">V23</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-800 mt-2">
+                <button onclick="closeAddWidgetModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition">Batal</button>
+                <button onclick="submitNewWidget()" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                    <i class="fas fa-check"></i> Pasang di Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Konfigurasi Widget -->
     <div id="modal-widget" class="modal-overlay">
         <div class="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-6 w-84 shadow-2xl relative">
@@ -419,7 +542,10 @@
                     <option value="V0">V0</option> <option value="V1">V1</option> <option value="V2">V2</option>
                     <option value="V3">V3</option> <option value="V4">V4</option> <option value="V5">V5</option>
                     <option value="V6">V6</option> <option value="V7">V7</option> <option value="V8">V8</option>
-                    <option value="V9">V9</option>
+                    <option value="V9">V9</option> <option value="V10">V10</option> <option value="V11">V11</option>
+                    <option value="V12">V12</option> <option value="V13">V13</option> <option value="V14">V14</option>
+                    <option value="V15">V15</option> <option value="V16">V16</option> <option value="V17">V17</option>
+                    <option value="V18">V18</option> <option value="V19">V19</option> <option value="V20">V20</option>
                 </select>
             </div>
             <div class="flex justify-end gap-3 pt-2">
@@ -614,6 +740,32 @@
 
         function renderWidgets() {
             canvasArea.innerHTML = '';
+            if (widgets.length === 0) {
+                const emptyEl = document.createElement('div');
+                emptyEl.className = 'w-full h-full min-h-[380px] flex flex-col items-center justify-center p-8 text-center select-none';
+                emptyEl.innerHTML = `
+                    <div class="p-8 rounded-3xl bg-[#0f172a]/70 border border-dashed border-gray-700/80 max-w-md flex flex-col items-center shadow-2xl backdrop-blur-sm">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-2xl mb-4">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <h3 class="text-base font-extrabold text-white mb-2">Dashboard Belum Memiliki Widget</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-6">Mulai rancang dashboard IoT Anda dengan menambahkan tombol saklar relay, slider PWM, gauge meter, atau penampil angka telemetri.</p>
+                        <div class="flex flex-wrap gap-3 justify-center">
+                            <button onclick="openAddWidgetModal()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                                <i class="fas fa-plus-circle"></i> + Tambah Widget Baru
+                            </button>
+                            <button onclick="toggleWidgetPalette(true)" class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-bold border border-gray-700 transition flex items-center gap-2">
+                                <i class="fas fa-layer-group text-emerald-400"></i> Buka Palet Samping
+                            </button>
+                        </div>
+                    </div>
+                `;
+                canvasArea.appendChild(emptyEl);
+                saveToLocal();
+                renderPrototypeWidgets();
+                return;
+            }
+
             widgets.forEach(w => {
                 const el = document.createElement('div');
                 el.className = 'widget-card';
@@ -672,6 +824,15 @@
                 else if (w.type === 'text') {
                     html += `<div class="text-center text-sm font-bold text-purple-300 w-full px-2 break-words" id="val-${w.id}">${w.value || '...'}</div>`;
                 }
+                else if (w.type === 'button') {
+                    html += `
+                        <button class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2"
+                                onmousedown="userAction('${w.id}', 1)" onmouseup="userAction('${w.id}', 0)"
+                                ontouchstart="userAction('${w.id}', 1)" ontouchend="userAction('${w.id}', 0)" ${isEditMode ? 'disabled' : ''}>
+                            <i class="fas fa-fingerprint text-emerald-200"></i> TEKAN
+                        </button>
+                    `;
+                }
 
                 html += `</div>`;
                 el.innerHTML = html;
@@ -688,6 +849,7 @@
                 case 'value': return '<i class="fas fa-desktop text-amber-400"></i>';
                 case 'gauge': return '<i class="fas fa-tachometer-alt text-cyan-400"></i>';
                 case 'text': return '<i class="fas fa-font text-purple-400"></i>';
+                case 'button': return '<i class="fas fa-fingerprint text-emerald-400"></i>';
                 default: return '<i class="fas fa-cube"></i>';
             }
         }
@@ -803,16 +965,44 @@
         });
 
         // === CRUD WIDGET ===
-        window.addWidget = function(type) {
+        window.addWidget = function(type, customTitle, customPin) {
             const newId = 'w' + Date.now();
-            let defTitle = type.toUpperCase(); let defVal = 0;
-            if(type === 'switch') defTitle = 'Relay Baru';
-            if(type === 'slider') defTitle = 'PWM Baru';
-            if(type === 'value') { defTitle = 'Sensor'; defVal = '--'; }
-            if(type === 'text') { defTitle = 'Status'; defVal = '...'; }
+            let defTitle = customTitle;
+            let defVal = 0;
+            if(!defTitle) {
+                if(type === 'switch') defTitle = 'Relay ' + (widgets.filter(w => w.type === 'switch').length + 1);
+                else if(type === 'slider') defTitle = 'PWM ' + (widgets.filter(w => w.type === 'slider').length + 1);
+                else if(type === 'value') { defTitle = 'Sensor Suhu'; defVal = '--'; }
+                else if(type === 'gauge') { defTitle = 'Level Tangki'; defVal = 0; }
+                else if(type === 'text') { defTitle = 'Status Device'; defVal = 'Online'; }
+                else if(type === 'button') { defTitle = 'Trigger Relay'; defVal = 0; }
+                else { defTitle = type.toUpperCase(); }
+            } else {
+                if(type === 'value' || type === 'text') defVal = '--';
+            }
 
-            widgets.push({ id: newId, type: type, pin: 'V0', title: defTitle, x: 20 + canvasArea.scrollLeft, y: 20 + canvasArea.scrollTop, value: defVal });
+            // Atur posisi rapi (grid otomatis) agar tidak menumpuk di 20, 20
+            const count = widgets.length;
+            const cols = Math.max(1, Math.floor(((canvasArea.clientWidth || 800) - 60) / 215)) || 3;
+            const col = count % cols;
+            const row = Math.floor(count / cols);
+            const posX = 24 + (col * 215);
+            const posY = 24 + (row * 195);
+
+            // Auto-pilih pin jika tidak ditentukan
+            let pin = customPin;
+            if(!pin) {
+                const usedPins = new Set(widgets.map(w => w.pin));
+                for(let i=0; i<=31; i++) {
+                    const p = 'V' + i;
+                    if(!usedPins.has(p)) { pin = p; break; }
+                }
+                if(!pin) pin = 'V0';
+            }
+
+            widgets.push({ id: newId, type: type, pin: pin, title: defTitle, x: posX, y: posY, value: defVal });
             renderWidgets();
+            return newId;
         };
 
         window.deleteWidget = function(id) {
@@ -827,6 +1017,73 @@
                 widgets = [];
                 renderWidgets();
             }
+        };
+
+        // Controller Modal Tambah Widget Baru
+        let selectedAddType = 'switch';
+        window.selectAddWidgetType = function(type) {
+            selectedAddType = type;
+            document.querySelectorAll('.widget-type-card').forEach(el => {
+                el.classList.remove('border-emerald-500', 'bg-emerald-500/10');
+                el.classList.add('border-gray-800', 'bg-[#141e33]');
+            });
+            const activeCard = document.getElementById(`type-opt-${type}`);
+            if(activeCard) {
+                activeCard.classList.remove('border-gray-800', 'bg-[#141e33]');
+                activeCard.classList.add('border-emerald-500', 'bg-emerald-500/10');
+            }
+            const titleInput = document.getElementById('new-widget-title');
+            if(titleInput) {
+                if(type === 'switch') titleInput.value = 'Relay ' + (widgets.filter(w=>w.type==='switch').length + 1);
+                else if(type === 'slider') titleInput.value = 'PWM ' + (widgets.filter(w=>w.type==='slider').length + 1);
+                else if(type === 'value') titleInput.value = 'Sensor Suhu';
+                else if(type === 'gauge') titleInput.value = 'Level Tangki';
+                else if(type === 'text') titleInput.value = 'Status Device';
+                else if(type === 'button') titleInput.value = 'Trigger Relay';
+            }
+        };
+
+        window.openAddWidgetModal = function() {
+            const pinSelect = document.getElementById('new-widget-pin');
+            if(pinSelect) {
+                const usedPins = new Set(widgets.map(w => w.pin));
+                for(let i=0; i<=23; i++) {
+                    if(!usedPins.has('V' + i)) {
+                        pinSelect.value = 'V' + i;
+                        break;
+                    }
+                }
+            }
+            selectAddWidgetType('switch');
+            const modal = document.getElementById('modal-add-widget');
+            if(modal) modal.style.display = 'flex';
+        };
+
+        window.closeAddWidgetModal = function() {
+            const modal = document.getElementById('modal-add-widget');
+            if(modal) modal.style.display = 'none';
+        };
+
+        window.submitNewWidget = function() {
+            const titleInput = document.getElementById('new-widget-title');
+            const title = (titleInput ? titleInput.value.trim() : '') || 'Widget';
+            const pinSelect = document.getElementById('new-widget-pin');
+            const pin = (pinSelect ? pinSelect.value : '') || 'V0';
+            window.addWidget(selectedAddType, title, pin);
+            closeAddWidgetModal();
+        };
+
+        window.toggleWidgetPalette = function(forceOpen) {
+            if(forceOpen === true) {
+                widgetPalette.classList.remove('hidden');
+            } else if(forceOpen === false) {
+                widgetPalette.classList.add('hidden');
+            } else {
+                widgetPalette.classList.toggle('hidden');
+            }
+            const isHidden = widgetPalette.classList.contains('hidden');
+            const btnText = document.getElementById('text-toggle-palette');
+            if(btnText) btnText.textContent = isHidden ? 'Palet Samping' : 'Tutup Palet';
         };
 
         // === MODALS & PROTOTYPE MODE ===
@@ -962,6 +1219,15 @@
                         </div>
                     `;
                 }
+                else if (w.type === 'button') {
+                    html += `
+                        <button class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs shadow-md transition my-1 flex items-center justify-center gap-2"
+                                onmousedown="userAction('${w.id}', 1)" onmouseup="userAction('${w.id}', 0)"
+                                ontouchstart="userAction('${w.id}', 1)" ontouchend="userAction('${w.id}', 0)">
+                            <i class="fas fa-fingerprint text-emerald-200"></i> TEKAN SEKARANG
+                        </button>
+                    `;
+                }
 
                 card.innerHTML = html;
                 protoMobileContent.appendChild(card);
@@ -1003,6 +1269,8 @@
         window.addEventListener('click', (e) => {
             if(e.target === modalWidget) window.closeWidgetConfig();
             if(e.target === modalServer) window.closeServerConfig();
+            const modalAdd = document.getElementById('modal-add-widget');
+            if(e.target === modalAdd) window.closeAddWidgetModal();
         });
 
         // === MANAJEMEN MODE EDIT ===
@@ -1012,18 +1280,20 @@
         const widgetPalette = document.getElementById('widget-palette');
 
         window.toggleEditMode = function() {
-            isEditMode = editToggleBtn.checked;
+            isEditMode = editToggleBtn ? editToggleBtn.checked : true;
             if(isEditMode) {
-                editToggleBg.classList.replace('bg-gray-700', 'bg-emerald-500');
-                editToggleDot.classList.add('translate-x-4');
+                if(editToggleBg) editToggleBg.classList.replace('bg-gray-700', 'bg-emerald-500');
+                if(editToggleDot) editToggleDot.classList.add('translate-x-4');
                 canvasArea.classList.add('edit-mode');
                 widgetPalette.classList.remove('hidden');
             } else {
-                editToggleBg.classList.replace('bg-emerald-500', 'bg-gray-700');
-                editToggleDot.classList.remove('translate-x-4');
+                if(editToggleBg) editToggleBg.classList.replace('bg-emerald-500', 'bg-gray-700');
+                if(editToggleDot) editToggleDot.classList.remove('translate-x-4');
                 canvasArea.classList.remove('edit-mode');
                 widgetPalette.classList.add('hidden');
             }
+            const btnText = document.getElementById('text-toggle-palette');
+            if(btnText) btnText.textContent = widgetPalette.classList.contains('hidden') ? 'Palet Samping' : 'Tutup Palet';
             renderWidgets();
         };
 
@@ -1057,12 +1327,18 @@
         }
 
         // === INIT ===
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function initDashboard() {
             await loadFromLocal();
-            editToggleBtn.checked = true;
+            if(editToggleBtn) editToggleBtn.checked = true;
             window.toggleEditMode();
             initWebSocket(); // Start WebSocket Connection
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboard);
+        } else {
+            initDashboard();
+        }
 
     </script>
 </body>

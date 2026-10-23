@@ -98,11 +98,11 @@ window.addEventListener('DOMContentLoaded', () => {
   bar.className = 'cloud-account';
   const text = document.createElement('span'); text.textContent = window.IoT.user.email;
   const logout = document.createElement('button'); logout.textContent = 'Keluar';
-  logout.onclick = async () => { await window.IoT.client.auth.signOut(); location.reload(); };
+  logout.onclick = async () => { await window.IoT.client.auth.signOut(); window.location.replace('/login.html'); };
   bar.append(text, logout); document.body.append(bar);
   if (window.IoT.client?.auth) {
     window.IoT.client.auth.onAuthStateChange((event, session) => {
-      if(event === 'SIGNED_OUT') location.reload();
+      if(event === 'SIGNED_OUT') window.location.replace('/login.html');
       if(event === 'TOKEN_REFRESHED' && session) queueMicrotask(() => window.IoT.client.realtime.setAuth(session.access_token));
     });
   }
