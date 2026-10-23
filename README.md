@@ -56,3 +56,6 @@ Materi pengenalan, eksplorasi bagian papan, dan demo skor deteksi buatan tetap t
 
 ## Mode tampilan
 Gunakan tombol Terang/Gelap di kanan bawah pada halaman login, beranda, dashboard, simulator, dan pengenalan Jetson. Pilihan disimpan di browser dan disinkronkan ke tab lain pada origin yang sama. Saat belum memilih, aplikasi mengikuti tema sistem. Tab Masuk/Daftar aktif berwarna jingga, tab tidak aktif putih.
+
+## Resistor virtual
+ESP32, Raspberry Pi, dan Jetson Nano memiliki komponen Resistor pada palet. Hubungkan GPIO → terminal A resistor → terminal B → anoda LED, lalu katode → GND. Resistor tidak berpolaritas. Nilai 220 Ω, 330 Ω, 1 kΩ, 4,7 kΩ, atau 10 kΩ ditampilkan dengan gelang warna dan tersimpan bersama proyek. Mesin memeriksa konektivitas logika LED melalui resistor; belum menghitung arus, tegangan jatuh, daya, atau perubahan terang berdasarkan nilai hambatan.

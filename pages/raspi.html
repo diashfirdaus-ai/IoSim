@@ -87,7 +87,7 @@
         .btn-delete-comp { position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 40; border: 2px solid #2a2a40; }
         .component:hover .btn-delete-comp { opacity: 1; }
     </style>
-<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"></head>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script></head>
 <body>
 
     <!-- Modal Login Mahasiswa -->
@@ -206,6 +206,7 @@
             </div>
 
             <h2 class="text-gray-400 font-bold mt-4 mb-2 uppercase text-xs tracking-wider">Komponen Dasar</h2>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="resistor"><span aria-hidden="true">▰</span><span class="font-medium text-sm">Resistor</span></div>
             <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="led">
                 <i class="far fa-lightbulb text-yellow-400 text-xl w-6 text-center"></i> <span class="font-medium text-sm">LED Merah</span>
             </div>
@@ -391,7 +392,8 @@ while True:
                     } catch(e) { console.error("Gagal memuat", e); }
                 } else {
                     window.spawnComponent('raspi', 100, 80);
-                    window.spawnComponent('led', 450, 150);
+                    window.spawnComponent('resistor', 450, 150);
+                    window.spawnComponent('led', 450, 330);
                 }
             }
 
@@ -527,6 +529,7 @@ while True:
 
             // --- TEMPLATE KOMPONEN (HANYA RASPBERRY PI) ---
             const componentTemplates = {
+                resistor: uid => window.LabResistor.template(uid),
                 raspi: (uid) => {
                     const pinsCol1 = [
                         { name: '3v3', label: '3V3' }, { name: '2', label: 'G2 ' }, { name: '3', label: 'G3 ' }, { name: '4', label: 'G4 ' },
@@ -589,6 +592,7 @@ while True:
                 
                 if(value !== null) { el.setAttribute('data-value', value); const slider = el.querySelector('input[type="range"]'); if(slider) slider.value = value; }
                 if(color !== null && type === 'led') changeLEDColor(el, color, "Custom"); 
+                if (type === 'resistor') window.LabResistor.configure(el, value);
                 workspace.appendChild(el);
             };
 
@@ -923,16 +927,13 @@ while True:
                     });
                 });
 
+                const resistorNetwork = window.LabResistor.network(state.wires, document.querySelectorAll('.component[data-type="resistor"]'), state.hw.pins);
                 document.querySelectorAll('.component[data-type="led"]').forEach(ledComp => {
-                    const uid = ledComp.getAttribute('data-uid'); const ledVisual = document.getElementById(`led-vis-${uid}`);
-                    const anodePinId = `led_anode_${uid}`; const cathodePinId = `led_cathode_${uid}`;
-                    let isAnodePowered = false; let isCathodeGrounded = false;
-                    state.wires.forEach(wire => {
-                        const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
-                        if (id1 === anodePinId || id2 === anodePinId) { const otherPin = id1 === anodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 1) isAnodePowered = true; }
-                        if (id1 === cathodePinId || id2 === cathodePinId) { const otherPin = id1 === cathodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 0) isCathodeGrounded = true; }
-                    });
-                    if (isAnodePowered && isCathodeGrounded) { ledVisual.classList.add('on'); } else { ledVisual.classList.remove('on'); }
+                    const uid = ledComp.getAttribute('data-uid');
+                    const ledVisual = document.getElementById(`led-vis-${uid}`);
+                    const powered = resistorNetwork.hasLevel(`led_anode_${uid}`, 1);
+                    const grounded = resistorNetwork.hasLevel(`led_cathode_${uid}`, 0);
+                    ledVisual.classList.toggle('on', powered && grounded);
                 });
 
                 document.querySelectorAll('.component[data-type="buzzer"]').forEach(buzzerComp => {

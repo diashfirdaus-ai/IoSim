@@ -517,7 +517,7 @@
             opacity: 1;
         }
     </style>
-<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"></head>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script></head>
 
 <body>
 
@@ -669,6 +669,7 @@
                 <i class="fas fa-microchip text-blue-400 text-xl w-6 text-center"></i> <span
                     class="font-medium text-sm">ESP32 DevKit</span>
             </div>
+            <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3" draggable="true" data-type="resistor"><span aria-hidden="true">▰</span><span class="font-medium text-sm">Resistor</span></div>
             <div class="sidebar-item bg-[#2a2a40] p-3 rounded border border-[#4a4a6a] cursor-grab hover:bg-[#3a3a50] transition flex items-center gap-3"
                 draggable="true" data-type="led">
                 <i class="far fa-lightbulb text-yellow-400 text-xl w-6 text-center"></i> <span
@@ -734,42 +735,56 @@
                 <div class="px-4 py-2 bg-[#1e1e1e] text-yellow-400 border-t-2 border-yellow-400 font-medium">sketch.ino
                 </div>
             </div>
+            <div class="px-3 py-2 text-xs bg-[#252526] text-gray-300">Lampu 4 kamar: V0→GPIO18 · V1→GPIO19 · V2→GPIO21 · V3→GPIO22. Setiap GPIO → resistor 220 Ω → anoda LED; semua katode ke GND.
+                <button id="btn-led-example" type="button" class="ml-2 px-2 py-1 rounded bg-orange-700 text-white">Kode 4 Kamar</button>
+            </div>
             <textarea id="code-editor"
                 class="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-4 font-mono text-sm outline-none resize-none"
                 spellcheck="false">
 void setup() {
-  pinMode(2, OUTPUT); // Pin LED bawaan ESP32 (D2)
   Serial.begin(115200);
-  Serial.println("Sistem Dimulai!");
+  pinMode(18, OUTPUT);
+  pinMode(19, OUTPUT);
+  pinMode(21, OUTPUT);
+  pinMode(22, OUTPUT);
+
+  digitalWrite(18, LOW);
+  digitalWrite(19, LOW);
+  digitalWrite(21, LOW);
+  digitalWrite(22, LOW);
+  Serial.println("Kontrol lampu 4 kamar siap.");
 }
 
-// Terpanggil otomatis ketika Switch V0 di Dashboard ditekan
+// Switch V0: Lampu Kamar 1, LED pada GPIO18
 ITENAS_WRITE(V0) {
-  int nilaiSwitch = param.asInt();
-  digitalWrite(2, nilaiSwitch); // Nyalakan/Matikan lampu berdasarkan switch V0
-  Serial.print("Status Relay: ");
-  Serial.println(nilaiSwitch == 1 ? "NYALA" : "MATI");
+  int nilai = param.asInt();
+  digitalWrite(18, nilai);
+  Serial.println(nilai == 1 ? "Kamar 1: NYALA" : "Kamar 1: MATI");
 }
 
-// Terpanggil otomatis ketika Slider V1 digeser
+// Switch V1: Lampu Kamar 2, LED pada GPIO19
 ITENAS_WRITE(V1) {
-  int nilaiPWM = param.asInt();
-  Serial.print("Nilai Slider Diterima: ");
-  Serial.println(nilaiPWM);
+  int nilai = param.asInt();
+  digitalWrite(19, nilai);
+  Serial.println(nilai == 1 ? "Kamar 2: NYALA" : "Kamar 2: MATI");
+}
+
+// Switch V2: Lampu Kamar 3, LED pada GPIO21
+ITENAS_WRITE(V2) {
+  int nilai = param.asInt();
+  digitalWrite(21, nilai);
+  Serial.println(nilai == 1 ? "Kamar 3: NYALA" : "Kamar 3: MATI");
+}
+
+// Switch V3: Lampu Kamar 4, LED pada GPIO22
+ITENAS_WRITE(V3) {
+  int nilai = param.asInt();
+  digitalWrite(22, nilai);
+  Serial.println(nilai == 1 ? "Kamar 4: NYALA" : "Kamar 4: MATI");
 }
 
 void loop() {
-  // Simulasi membaca sensor potensio dari Pin 34
-  int nilaiSensor = analogRead(34);
-  
-  // Tampilkan ke Serial Monitor
-  Serial.print("Nilai Sensor Potensio: ");
-  Serial.println(nilaiSensor);
-  
-  // Mengirim nilai sensor tersebut ke Widget (Gauge/Value) di pin V3 Dashboard
-  Blynk.virtualWrite(V3, nilaiSensor);
-  
-  delay(1000); // Update setiap 1000 ms
+  delay(100);
 }
 </textarea>
             <div class="h-48 bg-[#0d0d0d] border-t border-[#333] flex flex-col">
@@ -844,6 +859,15 @@ void loop() {
             const btnRun = document.getElementById('btn-run');
             const consoleOutput = document.getElementById('console-output');
             const codeEditor = document.getElementById('code-editor');
+            const defaultLEDCode = codeEditor.value;
+            const normalizeExample = code => code.replace(/BLYNK_WRITE/g, 'ITENAS_WRITE').trim().replace(/\s+/g, ' ');
+            const legacyExample = "\nvoid setup() {\n  pinMode(2, OUTPUT); // Pin LED bawaan ESP32 (D2)\n  Serial.begin(115200);\n  Serial.println(\"Sistem Dimulai!\");\n}\n\n// Terpanggil otomatis ketika Switch V0 di Dashboard ditekan\nITENAS_WRITE(V0) {\n  int nilaiSwitch = param.asInt();\n  digitalWrite(2, nilaiSwitch); // Nyalakan/Matikan lampu berdasarkan switch V0\n  Serial.print(\"Status Relay: \");\n  Serial.println(nilaiSwitch == 1 ? \"NYALA\" : \"MATI\");\n}\n\n// Terpanggil otomatis ketika Slider V1 digeser\nITENAS_WRITE(V1) {\n  int nilaiPWM = param.asInt();\n  Serial.print(\"Nilai Slider Diterima: \");\n  Serial.println(nilaiPWM);\n}\n\nvoid loop() {\n  // Simulasi membaca sensor potensio dari Pin 34\n  int nilaiSensor = analogRead(34);\n  \n  // Tampilkan ke Serial Monitor\n  Serial.print(\"Nilai Sensor Potensio: \");\n  Serial.println(nilaiSensor);\n  \n  // Mengirim nilai sensor tersebut ke Widget (Gauge/Value) di pin V3 Dashboard\n  Blynk.virtualWrite(V3, nilaiSensor);\n  \n  delay(1000); // Update setiap 1000 ms\n}\n";
+            document.getElementById('btn-led-example').addEventListener('click', () => {
+                if (state.isSimulating) stopSimulation();
+                codeEditor.value = defaultLEDCode;
+                logToConsole('Kode 4 kamar dimuat. Hubungkan LED ke GPIO18, 19, 21, 22 dan GND; gunakan switch V0–V3.', 'text-green-400');
+            });
+
             const editorResizer = document.getElementById('editor-resizer');
             const editorPanel = document.getElementById('editor-panel');
 
@@ -888,7 +912,7 @@ void loop() {
                         window.iotEngine.clearWorkspace();
 
                         // Kembalikan kode
-                        if (data.code) codeEditor.value = data.code;
+                        if (data.code) codeEditor.value = normalizeExample(data.code) === normalizeExample(legacyExample) ? defaultLEDCode : data.code;
 
                         // Kembalikan komponen
                         if (data.components) {
@@ -921,7 +945,8 @@ void loop() {
                 } else {
                     // Jika belum punya data (user baru), spawn default
                     window.spawnComponent('esp32', 100, 80);
-                    window.spawnComponent('potensiometer', 450, 60);
+                    window.spawnComponent('resistor', 400, 60);
+                    window.spawnComponent('led', 420, 250);
                 }
             }
 
@@ -1153,6 +1178,7 @@ void loop() {
 
             // --- 1. TEMPLATE KOMPONEN ---
             const componentTemplates = {
+                resistor: uid => window.LabResistor.template(uid),
                 arduino: (uid) => {
                     const leftPins = [
                         { id: '3v3', name: '3v3', label: '3.3V', type: 'pwr' }, { id: '5v', name: '5v', label: '5V', type: 'pwr' },
@@ -1223,6 +1249,7 @@ void loop() {
                     changeLEDColor(el, color, "Custom");
                 }
 
+                if (type === 'resistor') window.LabResistor.configure(el, value);
                 workspace.appendChild(el);
             };
 
@@ -1731,17 +1758,13 @@ void loop() {
                     });
                 });
 
+                const resistorNetwork = window.LabResistor.network(state.wires, document.querySelectorAll('.component[data-type="resistor"]'), state.hw.pins);
                 document.querySelectorAll('.component[data-type="led"]').forEach(ledComp => {
                     const uid = ledComp.getAttribute('data-uid');
                     const ledVisual = document.getElementById(`led-vis-${uid}`);
-                    const anodePinId = `led_anode_${uid}`; const cathodePinId = `led_cathode_${uid}`;
-                    let isAnodePowered = false; let isCathodeGrounded = false;
-                    state.wires.forEach(wire => {
-                        const id1 = wire.pin1.getAttribute('data-pin-id'); const id2 = wire.pin2.getAttribute('data-pin-id');
-                        if (id1 === anodePinId || id2 === anodePinId) { const otherPin = id1 === anodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 1) isAnodePowered = true; }
-                        if (id1 === cathodePinId || id2 === cathodePinId) { const otherPin = id1 === cathodePinId ? wire.pin2 : wire.pin1; if (state.hw.pins[otherPin.getAttribute('data-pin-name')] === 0) isCathodeGrounded = true; }
-                    });
-                    if (isAnodePowered && isCathodeGrounded) { ledVisual.classList.add('on'); } else { ledVisual.classList.remove('on'); }
+                    const powered = resistorNetwork.hasLevel(`led_anode_${uid}`, 1);
+                    const grounded = resistorNetwork.hasLevel(`led_cathode_${uid}`, 0);
+                    ledVisual.classList.toggle('on', powered && grounded);
                 });
 
                 document.querySelectorAll('.component[data-type="buzzer"]').forEach(buzzerComp => {
