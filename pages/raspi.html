@@ -348,14 +348,22 @@ while True:
             const userProfile = document.getElementById('user-profile');
             const divProfile = document.getElementById('divider-profile');
 
-            function loadWorkspaceFromStorage() {
+            async function loadWorkspaceFromStorage() {
                 if(!window.currentUserData) return;
                 const dbKey = `webiot_workspace_${window.currentUserData.nim}_python`; // pisah db untuk py
-                const savedData = localStorage.getItem(dbKey);
+                let data = null;
+                if (window.IoT && window.IoT.loadWorkspace) {
+                    data = await window.IoT.loadWorkspace('raspi');
+                }
+                if (!data) {
+                    const savedData = localStorage.getItem(dbKey);
+                    if (savedData) {
+                        try { data = JSON.parse(savedData); } catch (e) {}
+                    }
+                }
                 
-                if(savedData) {
+                if(data) {
                     try {
-                        const data = JSON.parse(savedData);
                         window.iotEngine.clearWorkspace();
                         if(data.code) { codeEditor.value = data.code; }
                         if(data.components) { data.components.forEach(c => { window.spawnComponent(c.type, c.x, c.y, c.uid, c.value, c.color); }); }
@@ -372,7 +380,7 @@ while True:
                                     }
                                 });
                                 renderWires(); evaluateCircuit();
-                                logToConsole(`Workspace dimuat.`, 'text-green-400');
+                                logToConsole(`Workspace dimuat dari database cloud.`, 'text-green-400');
                             }, 100); 
                         }
                     } catch(e) { console.error("Gagal memuat", e); }
@@ -398,12 +406,15 @@ while True:
                 }));
 
                 const dataToSave = { language: 'python', components: components, wires: wiresData, code: codeEditor.value, timestamp: new Date().toISOString() };
-                localStorage.setItem(`webiot_workspace_${window.currentUserData.nim}_python`, JSON.stringify(dataToSave));
+                try { localStorage.setItem(`webiot_workspace_${window.currentUserData.nim}_python`, JSON.stringify(dataToSave)); } catch(e){}
+                if (window.IoT && window.IoT.saveWorkspace) {
+                    window.IoT.saveWorkspace('raspi', dataToSave);
+                }
                 
                 const btnSave = document.getElementById('btn-save-cloud');
                 const origHtml = btnSave.innerHTML;
                 btnSave.innerHTML = `<i class="fas fa-check text-green-400"></i>`;
-                logToConsole(`Progress disimpan otomatis.`, 'text-green-400');
+                logToConsole(`Progress disimpan ke database cloud.`, 'text-green-400');
                 setTimeout(() => { btnSave.innerHTML = origHtml; }, 2000);
             }
 

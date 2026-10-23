@@ -42,3 +42,33 @@ test('API verifies token and membership before returning protected HTML',async()
   global.fetch=async url=>({ok:true,json:async()=>url.includes('/auth/')?{id:'alice'}:[{user_id:'alice'}]});res=response();await handler(req,res);assert.ok(res.body.includes('function runSimulation'));
  } finally {global.fetch=oldFetch;}
 });
+
+test('registration UI elements and bridge database sync are present', async () => {
+  const shell = fs.readFileSync('public/index.html', 'utf8');
+  assert.ok(shell.includes('id="tab-register"'));
+  assert.ok(shell.includes('id="tab-login"'));
+
+  let upserted = [];
+  const fakeClient = {
+    channel() { return { on(){ return this; }, subscribe(cb){ cb('SUBSCRIBED'); return this; }, async send(){ return 'ok'; } }; },
+    removeChannel() {},
+    from(table) {
+      return {
+        upsert(data) { upserted.push({ table, data }); return Promise.resolve({ data, error: null }); },
+        insert(data) { upserted.push({ table, data }); return Promise.resolve({ data, error: null }); },
+        select() { return { eq() { return { eq() { return { maybeSingle() { return Promise.resolve({ data: { data: { test: true } } }); } }; }, then(cb) { cb({ data: [] }); return { catch() {} }; } }; } }; }
+      };
+    }
+  };
+  const window = { IoT: { user: { id: 'alice' }, client: fakeClient }, addEventListener() {} };
+  vm.runInNewContext(fs.readFileSync('public/bridge.js', 'utf8'), { window, document: {}, console, clearInterval });
+  assert.equal(typeof window.IoT.saveWorkspace, 'function');
+  assert.equal(typeof window.IoT.loadWorkspace, 'function');
+  assert.equal(typeof window.IoT.savePinData, 'function');
+
+  await window.IoT.saveWorkspace('esp32', { code: 'void setup(){}' });
+  assert.ok(upserted.some(u => u.table === 'iot_workspaces' && u.data.workspace_type === 'esp32'));
+
+  await window.IoT.savePinData('V1', 100);
+  assert.ok(upserted.some(u => u.table === 'iot_device_data' && u.data.pin === 'V1' && u.data.value === '100'));
+});

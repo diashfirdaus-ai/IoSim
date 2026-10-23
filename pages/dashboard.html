@@ -1027,26 +1027,38 @@
             renderWidgets();
         };
 
-        // === LOCAL STORAGE (Save UI) ===
+        // === STORAGE (Cloud Database & Local Cache) ===
         function saveToLocal() {
             const dataToSave = widgets.map(w => ({ id: w.id, type: w.type, pin: w.pin, title: w.title, x: w.x, y: w.y }));
-            localStorage.setItem('webiot_dashboard_layout_' + window.IoT.user.id, JSON.stringify(dataToSave));
+            try { localStorage.setItem('webiot_dashboard_layout_' + window.IoT.user.id, JSON.stringify(dataToSave)); } catch(e){}
+            if (window.IoT && window.IoT.saveWorkspace) {
+                window.IoT.saveWorkspace('dashboard', dataToSave);
+            }
         }
 
-        function loadFromLocal() {
-            const saved = localStorage.getItem('webiot_dashboard_layout_' + window.IoT.user.id);
-            if(saved) {
-                const parsed = JSON.parse(saved);
-                widgets = parsed.map(w => ({
+        async function loadFromLocal() {
+            let data = null;
+            if (window.IoT && window.IoT.loadWorkspace) {
+                data = await window.IoT.loadWorkspace('dashboard');
+            }
+            if (!data) {
+                const saved = localStorage.getItem('webiot_dashboard_layout_' + window.IoT.user.id);
+                if(saved) {
+                    try { data = JSON.parse(saved); } catch(e){}
+                }
+            }
+            if(data && Array.isArray(data)) {
+                widgets = data.map(w => ({
                     ...w, 
                     value: (w.type === 'value' || w.type === 'text') ? '--' : 0
                 }));
+                renderWidgets();
             }
         }
 
         // === INIT ===
-        document.addEventListener('DOMContentLoaded', () => {
-            loadFromLocal();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFromLocal();
             editToggleBtn.checked = true;
             window.toggleEditMode();
             initWebSocket(); // Start WebSocket Connection

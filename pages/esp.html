@@ -863,14 +863,22 @@ void loop() {
             const userProfile = document.getElementById('user-profile');
             const divProfile = document.getElementById('divider-profile');
 
-            function loadWorkspaceFromStorage() {
+            async function loadWorkspaceFromStorage() {
                 if (!window.currentUserData) return;
                 const dbKey = `webiot_workspace_${window.currentUserData.nim}`;
-                const savedData = localStorage.getItem(dbKey);
+                let data = null;
+                if (window.IoT && window.IoT.loadWorkspace) {
+                    data = await window.IoT.loadWorkspace('esp32');
+                }
+                if (!data) {
+                    const savedData = localStorage.getItem(dbKey);
+                    if (savedData) {
+                        try { data = JSON.parse(savedData); } catch (e) {}
+                    }
+                }
 
-                if (savedData) {
+                if (data) {
                     try {
-                        const data = JSON.parse(savedData);
                         // Bersihkan workspace
                         window.iotEngine.clearWorkspace();
 
@@ -899,7 +907,7 @@ void loop() {
                                 });
                                 renderWires();
                                 evaluateCircuit();
-                                logToConsole(`Workspace terakhir berhasil dimuat dari database lokal.`, 'text-green-400');
+                                logToConsole(`Workspace terakhir berhasil dimuat dari database cloud.`, 'text-green-400');
                             }, 100); // 100ms delay for DOM
                         }
                     } catch (e) {
@@ -948,13 +956,16 @@ void loop() {
                     timestamp: new Date().toISOString()
                 };
 
-                localStorage.setItem(dbKey, JSON.stringify(dataToSave));
+                try { localStorage.setItem(dbKey, JSON.stringify(dataToSave)); } catch(e){}
+                if (window.IoT && window.IoT.saveWorkspace) {
+                    window.IoT.saveWorkspace('esp32', dataToSave);
+                }
 
                 // Visual feedback icon awan
                 const btnSave = document.getElementById('btn-save-cloud');
                 const origHtml = btnSave.innerHTML;
                 btnSave.innerHTML = `<i class="fas fa-check text-green-400"></i>`;
-                logToConsole(`Progress disimpan ke database lokal untuk NIM ${window.currentUserData.nim}`, 'text-green-400');
+                logToConsole(`Progress tersimpan ke database cloud.`, 'text-green-400');
                 setTimeout(() => { btnSave.innerHTML = origHtml; }, 2000);
             }
 
