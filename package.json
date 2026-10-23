@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "dev": "vercel dev",
+    "dev": "node dev.js",
+    "dev:vercel": "npx vercel dev",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {}
