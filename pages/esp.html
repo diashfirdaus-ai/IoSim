@@ -865,7 +865,7 @@ void loop() {
             document.getElementById('btn-lcd-example').addEventListener('click', () => {
                 if (state.isSimulating) stopSimulation();
                 codeEditor.value = lcdExample;
-                document.getElementById('example-wiring').textContent = 'LCD I2C: VCC→5V/VIN · GND→GND · SDA→GPIO21 · SCL→GPIO22. Tambahkan LCD dari palet lalu sambungkan kabel.';
+                document.getElementById('example-wiring').textContent = 'LCD I2C: VCC→5V/VIN · GND→GND · SDA→GPIO21 · SCL→GPIO22. Tambahkan LCD dari palet lalu sambungkan kabel. Library LiquidCrystal_I2C.h dan deklarasi objek lcd wajib ada.';
                 logToConsole('Contoh LCD dimuat. Hubungkan VCC, GND, SDA→GPIO21, SCL→GPIO22. Setiap pernyataan wajib diakhiri titik koma (;).', 'text-green-400');
             });
 

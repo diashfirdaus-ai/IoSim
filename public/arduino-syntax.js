@@ -35,8 +35,41 @@
       throw error(i+1,"Tanda ';' wajib di akhir pernyataan.");
     }
     if(parens||brackets)throw error(pendingLine,'Tanda kurung belum ditutup.');
+    validateLCD(source, cleaned);
     return true;
   }
+  function withoutComments(source) {
+    return source.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, token => token.startsWith('/') ? token.replace(/[^\n]/g,' ') : token);
+  }
+  function validateLCD(source, cleaned) {
+    const headers = withoutComments(source);
+    const code = cleaned.replace(/^[ \t]*#[^\n]*/gm, text => ' '.repeat(text.length));
+    const includes = [...headers.matchAll(/^\s*#\s*include\s*[<"]LiquidCrystal_I2C\.h[>"]/gm)];
+    const lineAt = index => cleaned.slice(0,index).split('\n').length;
+    const declarations = [...code.matchAll(/\bLiquidCrystal_I2C\s+([A-Za-z_]\w*)\s*\(([^;{}]*)\)\s*;/g)];
+    const names = new Set(declarations.map(match => match[1]));
+    const calls = [...code.matchAll(/\b([A-Za-z_]\w*)\s*\.\s*(init|begin|backlight|noBacklight|setCursor|clear|print|home|display|noDisplay|cursor|noCursor|blink|noBlink)\s*\(/g)]
+      .filter(match => match[1] === 'lcd' || names.has(match[1]) || (!['Serial','Blynk','ITENAS','param'].includes(match[1]) && ['init','backlight','noBacklight','setCursor'].includes(match[2])));
+    const typeUse = code.match(/\bLiquidCrystal_I2C\b/);
+    if (!declarations.length && !calls.length && !typeUse) return;
+    const first = declarations[0]?.index ?? calls[0]?.index ?? typeUse.index;
+    if (!includes.some(match => match.index < first)) {
+      throw error(lineAt(first), "'LiquidCrystal_I2C' tidak dikenali. Tambahkan #include <LiquidCrystal_I2C.h> sebelum deklarasi LCD.");
+    }
+    const objects = new Map();
+    for (const declaration of declarations) {
+      if (objects.has(declaration[1])) throw error(lineAt(declaration.index), `Objek '${declaration[1]}' dideklarasikan lebih dari sekali.`);
+      const args = declaration[2].split(',').map(arg => arg.trim());
+      if (args.length !== 3 || args.some(arg => !arg)) throw error(lineAt(declaration.index), 'Konstruktor LCD membutuhkan 3 argumen: alamat I2C, jumlah kolom, dan jumlah baris. Contoh: LiquidCrystal_I2C lcd(0x27, 16, 2);');
+      objects.set(declaration[1], declaration);
+    }
+    if (typeUse && !declarations.length) throw error(lineAt(typeUse.index), 'Deklarasi LCD tidak lengkap. Gunakan LiquidCrystal_I2C lcd(0x27, 16, 2);');
+    for (const call of calls) {
+      const declaration = objects.get(call[1]);
+      if (!declaration || declaration.index > call.index) throw error(lineAt(call.index), `'${call[1]}' was not declared in this scope. Deklarasikan LiquidCrystal_I2C ${call[1]}(0x27, 16, 2); sebelum digunakan.`);
+    }
+  }
+
   function error(line,message){const e=new SyntaxError(`Baris ${line}: ${message}`);e.lineNumber=line;return e;}
   window.ArduinoSyntax={check};
 })();
