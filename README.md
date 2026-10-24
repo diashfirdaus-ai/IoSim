@@ -59,3 +59,6 @@ Gunakan tombol Terang/Gelap di kanan bawah pada halaman login, beranda, dashboar
 
 ## Resistor virtual
 ESP32, Raspberry Pi, dan Jetson Nano memiliki komponen Resistor pada palet. Hubungkan GPIO → terminal A resistor → terminal B → anoda LED, lalu katode → GND. Resistor tidak berpolaritas. Nilai 220 Ω, 330 Ω, 1 kΩ, 4,7 kΩ, atau 10 kΩ ditampilkan dengan gelang warna dan tersimpan bersama proyek. Mesin memeriksa konektivitas logika LED melalui resistor; belum menghitung arus, tegangan jatuh, daya, atau perubahan terang berdasarkan nilai hambatan.
+
+## Contoh LCD dan pemeriksaan sintaks ESP32
+Tombol Contoh LCD di atas editor memuat program LCD I2C 16×2 beserta petunjuk kabel. Tombol Kode 4 Kamar tetap tersedia. Sebelum menerjemahkan kode, pemeriksa sintaks menolak pernyataan yang kehilangan titik koma dan menampilkan nomor baris serta memilih baris tersebut di editor. Pemeriksa ini memvalidasi sintaks dasar simulator, bukan compiler C++/Arduino penuh.
