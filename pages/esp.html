@@ -517,7 +517,7 @@
             opacity: 1;
         }
     </style>
-<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script></head>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script><script src="/arduino-syntax.js"></script></head>
 
 <body>
 
@@ -527,7 +527,7 @@
         <div
             class="bg-[#1e293b] border border-[#334155] rounded-2xl p-8 w-[400px] shadow-2xl flex flex-col items-center">
             <i class="fas fa-microchip text-blue-500 text-5xl mb-4"></i>
-            <h2 class="text-2xl font-bold text-white tracking-wider mb-1">WebIoT Simulator</h2>
+            <h2 class="text-2xl font-bold text-white tracking-wider mb-1">IoSim</h2>
             <p class="text-xs text-gray-400 mb-8 uppercase tracking-widest font-semibold">Institut Teknologi Nasional Bandung</p>
 
             <div class="w-full mb-4">
@@ -735,8 +735,9 @@
                 <div class="px-4 py-2 bg-[#1e1e1e] text-yellow-400 border-t-2 border-yellow-400 font-medium">sketch.ino
                 </div>
             </div>
-            <div class="px-3 py-2 text-xs bg-[#252526] text-gray-300">Lampu 4 kamar: V0→GPIO18 · V1→GPIO19 · V2→GPIO21 · V3→GPIO22. Setiap GPIO → resistor 220 Ω → anoda LED; semua katode ke GND.
+            <div class="px-3 py-2 text-xs bg-[#252526] text-gray-300"><span id="example-wiring">Lampu 4 kamar: V0→GPIO18 · V1→GPIO19 · V2→GPIO21 · V3→GPIO22. Setiap GPIO → resistor 220 Ω → anoda LED; semua katode ke GND.</span>
                 <button id="btn-led-example" type="button" class="ml-2 px-2 py-1 rounded bg-orange-700 text-white">Kode 4 Kamar</button>
+                <button id="btn-lcd-example" type="button" class="ml-2 px-2 py-1 rounded bg-orange-700 text-white">Contoh LCD</button>
             </div>
             <textarea id="code-editor"
                 class="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-4 font-mono text-sm outline-none resize-none"
@@ -860,11 +861,20 @@ void loop() {
             const consoleOutput = document.getElementById('console-output');
             const codeEditor = document.getElementById('code-editor');
             const defaultLEDCode = codeEditor.value;
+            const lcdExample = "#include <LiquidCrystal_I2C.h>\n\nLiquidCrystal_I2C lcd(0x27, 16, 2);\n\nvoid setup() {\n  lcd.init();\n  lcd.backlight();\n  lcd.setCursor(0, 0);\n  lcd.print(\"Halo Mahasiswa!\");\n  lcd.setCursor(0, 1);\n  lcd.print(\"ITENAS IoT Lab\");\n}\n\nvoid loop() {\n  delay(1000);\n}\n";
+            document.getElementById('btn-lcd-example').addEventListener('click', () => {
+                if (state.isSimulating) stopSimulation();
+                codeEditor.value = lcdExample;
+                document.getElementById('example-wiring').textContent = 'LCD I2C: VCC→5V/VIN · GND→GND · SDA→GPIO21 · SCL→GPIO22. Tambahkan LCD dari palet lalu sambungkan kabel.';
+                logToConsole('Contoh LCD dimuat. Hubungkan VCC, GND, SDA→GPIO21, SCL→GPIO22. Setiap pernyataan wajib diakhiri titik koma (;).', 'text-green-400');
+            });
+
             const normalizeExample = code => code.replace(/BLYNK_WRITE/g, 'ITENAS_WRITE').trim().replace(/\s+/g, ' ');
             const legacyExample = "\nvoid setup() {\n  pinMode(2, OUTPUT); // Pin LED bawaan ESP32 (D2)\n  Serial.begin(115200);\n  Serial.println(\"Sistem Dimulai!\");\n}\n\n// Terpanggil otomatis ketika Switch V0 di Dashboard ditekan\nITENAS_WRITE(V0) {\n  int nilaiSwitch = param.asInt();\n  digitalWrite(2, nilaiSwitch); // Nyalakan/Matikan lampu berdasarkan switch V0\n  Serial.print(\"Status Relay: \");\n  Serial.println(nilaiSwitch == 1 ? \"NYALA\" : \"MATI\");\n}\n\n// Terpanggil otomatis ketika Slider V1 digeser\nITENAS_WRITE(V1) {\n  int nilaiPWM = param.asInt();\n  Serial.print(\"Nilai Slider Diterima: \");\n  Serial.println(nilaiPWM);\n}\n\nvoid loop() {\n  // Simulasi membaca sensor potensio dari Pin 34\n  int nilaiSensor = analogRead(34);\n  \n  // Tampilkan ke Serial Monitor\n  Serial.print(\"Nilai Sensor Potensio: \");\n  Serial.println(nilaiSensor);\n  \n  // Mengirim nilai sensor tersebut ke Widget (Gauge/Value) di pin V3 Dashboard\n  Blynk.virtualWrite(V3, nilaiSensor);\n  \n  delay(1000); // Update setiap 1000 ms\n}\n";
             document.getElementById('btn-led-example').addEventListener('click', () => {
                 if (state.isSimulating) stopSimulation();
                 codeEditor.value = defaultLEDCode;
+                document.getElementById('example-wiring').textContent = 'Lampu 4 kamar: V0→GPIO18 · V1→GPIO19 · V2→GPIO21 · V3→GPIO22. Gunakan resistor seri dan katode ke GND.';
                 logToConsole('Kode 4 kamar dimuat. Hubungkan LED ke GPIO18, 19, 21, 22 dan GND; gunakan switch V0–V3.', 'text-green-400');
             });
 
@@ -1662,6 +1672,7 @@ void loop() {
                     evaluateCircuit();
                     if (window.sys_lcd_clear) window.sys_lcd_clear();
 
+                    window.ArduinoSyntax.check(codeEditor.value);
                     const jsCode = transpileArduinoToJS(codeEditor.value);
                     const createRunner = new Function(`
                         ${jsCode}
@@ -1683,6 +1694,11 @@ void loop() {
                     }
                 } catch (error) {
                     logToConsole(`Error Kompilasi: ${error.message}`, 'text-red-500');
+                    if (error.lineNumber) {
+                        const lines = codeEditor.value.split('\n');
+                        const start = lines.slice(0, error.lineNumber - 1).join('\n').length + (error.lineNumber > 1 ? 1 : 0);
+                        codeEditor.focus(); codeEditor.setSelectionRange(start, start + (lines[error.lineNumber - 1]?.length || 0));
+                    }
                     stopSimulation();
                 }
             }
