@@ -517,7 +517,7 @@
             opacity: 1;
         }
     </style>
-<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script><script src="/arduino-syntax.js"></script></head>
+<link rel="stylesheet" href="/flat.css"><script src="/bridge.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/resistor.css"><script src="/resistor.js"></script><script src="/arduino-syntax.js"></script><script src="/dht-sensor.js"></script></head>
 
 <body>
 
@@ -1231,7 +1231,7 @@ void loop() {
                 potensiometer: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-circle-notch text-green-400"></i> Potensiometer</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="pot-knob-container"><div class="pot-knob"><div class="pot-indicator"></div></div></div><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="pot_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">SIG</span><div class="pin" data-pin-id="pot_sig_${uid}" data-pin-name="sig"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="pot_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
                 button: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="far fa-dot-circle text-red-400"></i> Push Button</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="push-button ignore-drag" id="btn-vis-${uid}"></div><div class="flex justify-between w-full gap-8 mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label">Terminal 1</span><div class="pin" data-pin-id="btn_t1_${uid}" data-pin-name="t1"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label">Terminal 2</span><div class="pin" data-pin-id="btn_t2_${uid}" data-pin-name="t2"></div></div></div></div></div>`,
                 buzzer: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-bullhorn text-blue-400"></i> Buzzer</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="buzzer-body buzzer-visual" id="buzzer-vis-${uid}"></div><div class="flex justify-between w-full gap-4 mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">Positif (+)</span><div class="pin" data-pin-id="buzzer_pos_${uid}" data-pin-name="pos"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">Negatif (-)</span><div class="pin" data-pin-id="buzzer_neg_${uid}" data-pin-name="neg"></div></div></div></div></div>`,
-                dht22: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-temperature-high text-cyan-400"></i> DHT22</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="sensor-body dht-body"><div>Nilai Sensor</div><input type="range" class="slider-control ignore-drag" min="0" max="100" value="50"></div><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="dht_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">DAT</span><div class="pin" data-pin-id="dht_dat_${uid}" data-pin-name="dat"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="dht_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
+                dht22: uid => window.LabDHT.template(uid),
                 ldr: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-sun text-yellow-400"></i> LDR Sensor</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="ldr-body"></div><input type="range" class="slider-control ignore-drag" min="0" max="1023" value="512"><div class="flex justify-center gap-4 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="ldr_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">SIG</span><div class="pin" data-pin-id="ldr_sig_${uid}" data-pin-name="sig"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="ldr_gnd_${uid}" data-pin-name="gnd"></div></div></div></div></div>`,
                 rgbled: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-lightbulb text-purple-400"></i> RGB LED</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="rgb-led-bulb rgb-visual" id="rgb-vis-${uid}"></div><div class="flex justify-center gap-2 w-full mt-2"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">R</span><div class="pin" data-pin-id="rgb_r_${uid}" data-pin-name="r"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="rgb_gnd_${uid}" data-pin-name="gnd"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-green-400">G</span><div class="pin" data-pin-id="rgb_g_${uid}" data-pin-name="g"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-400">B</span><div class="pin" data-pin-id="rgb_b_${uid}" data-pin-name="b"></div></div></div></div></div>`,
                 lcdi2c: (uid) => `<div class="btn-delete-comp"><i class="fas fa-times"></i></div><div class="component-header"><i class="fas fa-desktop text-green-500"></i> LCD 16x2 I2C</div><div class="component-body" style="flex-direction: column; align-items: center;"><div class="lcd-board"><div class="lcd-screen" id="lcd-vis-${uid}"><div class="lcd-row" id="lcd-row-0-${uid}"></div><div class="lcd-row" id="lcd-row-1-${uid}"></div></div></div><div class="flex justify-center gap-4 w-full mt-3"><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-gray-400">GND</span><div class="pin" data-pin-id="lcd_gnd_${uid}" data-pin-name="gnd"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-red-400">VCC</span><div class="pin" data-pin-id="lcd_vcc_${uid}" data-pin-name="vcc"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-blue-300">SDA</span><div class="pin" data-pin-id="lcd_sda_${uid}" data-pin-name="sda"></div></div></div><div class="pin-group"><div class="pin-row flex-col"><span class="pin-label text-yellow-300">SCL</span><div class="pin" data-pin-id="lcd_scl_${uid}" data-pin-name="scl"></div></div></div></div></div>`,
@@ -1260,6 +1260,7 @@ void loop() {
                 }
 
                 if (type === 'resistor') window.LabResistor.configure(el, value);
+                if (type === 'dht22') window.LabDHT.configure(el, value);
                 workspace.appendChild(el);
             };
 
@@ -1272,8 +1273,8 @@ void loop() {
             workspace.addEventListener('drop', (e) => {
                 const type = e.dataTransfer.getData('type');
                 if (type) {
-                    let dropX = e.clientX - workspace.getBoundingClientRect().left - 60;
-                    let dropY = e.clientY - workspace.getBoundingClientRect().top - 20;
+                    let dropX = e.clientX - workspace.getBoundingClientRect().left + workspace.scrollLeft - 60;
+                    let dropY = e.clientY - workspace.getBoundingClientRect().top + workspace.scrollTop - 20;
                     dropX = Math.round(dropX / 20) * 20;
                     dropY = Math.round(dropY / 20) * 20;
                     window.spawnComponent(type, dropX, dropY);
@@ -1331,8 +1332,8 @@ void loop() {
 
                 if (state.activeComponent) {
                     const wsRect = workspace.getBoundingClientRect();
-                    let newX = e.clientX - wsRect.left - state.offsetX;
-                    let newY = e.clientY - wsRect.top - state.offsetY;
+                    let newX = e.clientX - wsRect.left + workspace.scrollLeft - state.offsetX;
+                    let newY = e.clientY - wsRect.top + workspace.scrollTop - state.offsetY;
                     newX = Math.round(newX / 20) * 20;
                     newY = Math.round(newY / 20) * 20;
                     state.activeComponent.style.left = `${newX}px`;
@@ -1358,8 +1359,8 @@ void loop() {
 
                 if (state.isDraggingWire && state.activeWire) {
                     const wsRect = workspace.getBoundingClientRect();
-                    let newX = e.clientX - wsRect.left;
-                    let newY = e.clientY - wsRect.top;
+                    let newX = e.clientX - wsRect.left + workspace.scrollLeft;
+                    let newY = e.clientY - wsRect.top + workspace.scrollTop;
                     newX = Math.round(newX / 20) * 20;
                     newY = Math.round(newY / 20) * 20;
 
@@ -1415,13 +1416,16 @@ void loop() {
             });
 
             function renderWires() {
+                const parts = Array.from(workspace.querySelectorAll('.component'));
+                wiresLayer.style.width = Math.max(workspace.clientWidth, ...parts.map(c => c.offsetLeft + c.offsetWidth + 24)) + 'px';
+                wiresLayer.style.height = Math.max(workspace.clientHeight, ...parts.map(c => c.offsetTop + c.offsetHeight + 24)) + 'px';
                 wiresLayer.innerHTML = '';
                 const wsRect = workspace.getBoundingClientRect();
                 state.wires.forEach(wire => {
                     if (!document.body.contains(wire.pin1) || !document.body.contains(wire.pin2)) return;
                     const r1 = wire.pin1.getBoundingClientRect(), r2 = wire.pin2.getBoundingClientRect();
-                    const x1 = (r1.left + r1.width / 2) - wsRect.left, y1 = (r1.top + r1.height / 2) - wsRect.top;
-                    const x2 = (r2.left + r2.width / 2) - wsRect.left, y2 = (r2.top + r2.height / 2) - wsRect.top;
+                    const x1 = (r1.left + r1.width / 2) - wsRect.left + workspace.scrollLeft, y1 = (r1.top + r1.height / 2) - wsRect.top + workspace.scrollTop;
+                    const x2 = (r2.left + r2.width / 2) - wsRect.left + workspace.scrollLeft, y2 = (r2.top + r2.height / 2) - wsRect.top + workspace.scrollTop;
 
                     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 
@@ -1622,6 +1626,8 @@ void loop() {
 
             function transpileArduinoToJS(cppCode) {
                 let js = cppCode;
+                js = js.replace(/DHT\s+(\w+)\s*\(\s*([^,()]+)\s*,\s*DHT22\s*\)\s*;/g, 'const $1 = window.LabDHT.create($2);');
+                js = js.replace(/\bisnan\s*\(/g, 'Number.isNaN(');
                 js = js.replace(/#include\s*<.*?>/g, '');
                 js = js.replace(/#include\s*".*?"/g, '');
                 js = js.replace(/LiquidCrystal_I2C\s+\w+\s*\(.*?\)\s*;/g, '');

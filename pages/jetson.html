@@ -611,8 +611,8 @@ while True:
             workspace.addEventListener('drop', (e) => {
                 const type = e.dataTransfer.getData('type');
                 if (type) {
-                    let dropX = Math.round((e.clientX - workspace.getBoundingClientRect().left - 60) / 20) * 20;
-                    let dropY = Math.round((e.clientY - workspace.getBoundingClientRect().top - 20) / 20) * 20;
+                    let dropX = Math.round((e.clientX - workspace.getBoundingClientRect().left + workspace.scrollLeft - 60) / 20) * 20;
+                    let dropY = Math.round((e.clientY - workspace.getBoundingClientRect().top + workspace.scrollTop - 20) / 20) * 20;
                     window.spawnComponent(type, dropX, dropY);
                 }
             });
@@ -643,8 +643,8 @@ while True:
                 }
                 if (state.activeComponent) {
                     const wsRect = workspace.getBoundingClientRect();
-                    let newX = Math.round((e.clientX - wsRect.left - state.offsetX) / 20) * 20;
-                    let newY = Math.round((e.clientY - wsRect.top - state.offsetY) / 20) * 20;
+                    let newX = Math.round((e.clientX - wsRect.left + workspace.scrollLeft - state.offsetX) / 20) * 20;
+                    let newY = Math.round((e.clientY - wsRect.top + workspace.scrollTop - state.offsetY) / 20) * 20;
                     state.activeComponent.style.left = `${newX}px`; state.activeComponent.style.top = `${newY}px`; renderWires();
                 }
                 if (state.isDraggingPot && state.activePotKnob) {
@@ -657,7 +657,7 @@ while True:
                 }
                 if (state.isDraggingWire && state.activeWire) {
                     const wsRect = workspace.getBoundingClientRect();
-                    let newX = Math.round((e.clientX - wsRect.left) / 20) * 20; let newY = Math.round((e.clientY - wsRect.top) / 20) * 20;
+                    let newX = Math.round((e.clientX - wsRect.left + workspace.scrollLeft) / 20) * 20; let newY = Math.round((e.clientY - wsRect.top + workspace.scrollTop) / 20) * 20;
                     if (state.activeWireHandle === 'x') state.activeWire.fixedMidX = newX;
                     else if (state.activeWireHandle === 'y1') state.activeWire.fixedMidY1 = newY;
                     else if (state.activeWireHandle === 'y2') state.activeWire.fixedMidY2 = newY;
@@ -690,12 +690,15 @@ while True:
             });
 
             function renderWires() {
+                const parts = Array.from(workspace.querySelectorAll('.component'));
+                wiresLayer.style.width = Math.max(workspace.clientWidth, ...parts.map(c => c.offsetLeft + c.offsetWidth + 24)) + 'px';
+                wiresLayer.style.height = Math.max(workspace.clientHeight, ...parts.map(c => c.offsetTop + c.offsetHeight + 24)) + 'px';
                 wiresLayer.innerHTML = ''; const wsRect = workspace.getBoundingClientRect();
                 state.wires.forEach(wire => {
                     if(!document.body.contains(wire.pin1) || !document.body.contains(wire.pin2)) return;
                     const r1 = wire.pin1.getBoundingClientRect(), r2 = wire.pin2.getBoundingClientRect();
-                    const x1 = (r1.left + r1.width/2) - wsRect.left, y1 = (r1.top + r1.height/2) - wsRect.top;
-                    const x2 = (r2.left + r2.width/2) - wsRect.left, y2 = (r2.top + r2.height/2) - wsRect.top;
+                    const x1 = (r1.left + r1.width/2) - wsRect.left + workspace.scrollLeft, y1 = (r1.top + r1.height/2) - wsRect.top + workspace.scrollTop;
+                    const x2 = (r2.left + r2.width/2) - wsRect.left + workspace.scrollLeft, y2 = (r2.top + r2.height/2) - wsRect.top + workspace.scrollTop;
                     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     const midX = (wire.fixedMidX !== undefined && wire.fixedMidX !== null) ? wire.fixedMidX : x1 + (x2 - x1) / 2;
                     const midY1 = (wire.fixedMidY1 !== undefined && wire.fixedMidY1 !== null) ? wire.fixedMidY1 : y1;
